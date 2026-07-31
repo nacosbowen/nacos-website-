@@ -1,0 +1,249 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum RoleName {
+  student
+  course_rep
+  executive
+  admin
+}
+
+enum NotificationAudience {
+  all
+  level_100
+  level_200
+  level_300
+  level_400
+  level_500
+}
+
+enum NotificationCategory {
+  general
+  academic
+  event
+  urgent
+}
+
+enum SuggestionStatus {
+  pending
+  reviewed
+  resolved
+}
+
+model StudentRegistry {
+  id           Int     @id @default(autoincrement())
+  fullName     String
+  matricNumber String  @unique
+  level        Int
+  isRegistered Boolean @default(false)
+}
+
+model Department {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  code      String   @unique
+  createdAt DateTime @default(now())
+
+  users            User[]
+  courseRepAssigns CourseRepAssignment[]
+  timetableEntries TimetableEntry[]
+}
+
+model User {
+  id                String   @id @default(uuid())
+  email             String   @unique
+  fullName          String
+  matricNumber      String   @unique
+  password          String
+  departmentId      Int
+  level             Int
+  profilePictureUrl String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  department        Department           @relation(fields: [departmentId], references: [id])
+  roles             UserRole[]
+  refreshTokens     RefreshToken[]
+  notifReads        NotificationRead[]
+  suggestions       Suggestion[]
+  pushSubscriptions PushSubscription[]
+  courseRepAssigns  CourseRepAssignment[]
+  votes             Vote[]
+  rsvps             EventRsvp[]
+}
+
+model Role {
+  id    Int      @id @default(autoincrement())
+  name  RoleName @unique
+  users UserRole[]
+}
+
+model UserRole {
+  userId     String
+  roleId     Int
+  assignedAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id])
+
+  @@id([userId, roleId])
+}
+
+model CourseRepAssignment {
+  id           Int      @id @default(autoincrement())
+  userId       String
+  departmentId Int
+  level        Int
+  assignedAt   DateTime @default(now())
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  department Department @relation(fields: [departmentId], references: [id])
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  tokenHash String   @unique
+  userId    String
+  expiresAt DateTime
+  revoked   Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id          String               @id @default(uuid())
+  title       String
+  body        String
+  audience    NotificationAudience @default(all)
+  category    NotificationCategory @default(general)
+  createdById String
+  createdAt   DateTime             @default(now())
+
+  reads NotificationRead[]
+}
+
+model NotificationRead {
+  userId         String
+  notificationId String
+  readAt         DateTime @default(now())
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notification Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+
+  @@id([userId, notificationId])
+}
+
+model PastQuestion {
+  id           String   @id @default(uuid())
+  title        String
+  courseCode   String
+  departmentId Int?
+  level        Int
+  year         Int
+  fileUrl      String
+  uploadedById String
+  createdAt    DateTime @default(now())
+}
+
+model Suggestion {
+  id        String           @id @default(uuid())
+  userId    String
+  body      String
+  anonymous Boolean          @default(false)
+  status    SuggestionStatus @default(pending)
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Event {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  date        DateTime
+  location    String?
+  createdById String
+  createdAt   DateTime @default(now())
+
+  rsvps EventRsvp[]
+}
+
+model EventRsvp {
+  id         String   @id @default(uuid())
+  userId     String
+  eventId    String
+  ticketCode String   @unique @default(uuid())
+  rsvpAt     DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, eventId])
+}
+
+model TimetableEntry {
+  id           String   @id @default(uuid())
+  departmentId Int
+  level        Int
+  courseCode   String
+  courseTitle  String
+  day          String
+  startTime    String
+  endTime      String
+  venue        String?
+  createdAt    DateTime @default(now())
+
+  department Department @relation(fields: [departmentId], references: [id])
+}
+
+model Poll {
+  id          String    @id @default(uuid())
+  title       String
+  description String?
+  createdById String
+  isActive    Boolean   @default(true)
+  endsAt      DateTime?
+  createdAt   DateTime  @default(now())
+
+  options PollOption[]
+  votes   Vote[]
+}
+
+model PollOption {
+  id     String @id @default(uuid())
+  pollId String
+  text   String
+
+  poll  Poll   @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  votes Vote[]
+}
+
+model Vote {
+  userId   String
+  pollId   String
+  optionId String
+  votedAt  DateTime @default(now())
+
+  user   User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  poll   Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  option PollOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+
+  @@id([userId, pollId])
+}
+
+model PushSubscription {
+  id       String @id @default(uuid())
+  userId   String
+  endpoint String @unique
+  p256dh   String
+  auth     String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}

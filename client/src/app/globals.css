@@ -1,0 +1,106 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+@font-face {
+  font-family: 'Ranade';
+  src: url('/fonts/Ranade-Bold.woff2') format('woff2'),
+       url('/fonts/Ranade-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+* { box-sizing: border-box; }
+body { font-family: 'Inter', sans-serif; background: white; }
+
+/* ── Splash ── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in { animation: fadeIn 0.6s ease-out forwards; }
+
+/* ── Navbar 3D pill ── */
+.nav-pill {
+  background: linear-gradient(145deg, #2e2e2e 0%, #0f0f0f 55%, #1c1c1c 100%);
+  box-shadow:
+    0 30px 60px -10px rgba(0,0,0,0.65),
+    0 0 0 1px rgba(255,255,255,0.07),
+    inset 0 1px 0 rgba(255,255,255,0.12),
+    inset 0 -1px 0 rgba(0,0,0,0.35);
+}
+.nav-shine {
+  position: absolute; top: 0; left: -160%; width: 75%; height: 100%;
+  background: linear-gradient(105deg, transparent 0%, rgba(255,255,255,0.03) 35%, rgba(255,255,255,0.10) 50%, rgba(255,255,255,0.03) 65%, transparent 100%);
+  transform: skewX(-12deg);
+  animation: shine-sweep 4s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes shine-sweep { 0% { left: -160%; } 45% { left: 160%; } 100% { left: 160%; } }
+
+/* ── Nav links ── */
+.nav-link-item {
+  position: relative; opacity: 0;
+  animation: link-enter 0.5s ease-out forwards;
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+.nav-link-item:hover { color: #fff; transform: translateY(-1px); text-shadow: 0 0 18px rgba(255,255,255,0.55); }
+.nav-link-item::after {
+  content: ''; position: absolute; bottom: 2px; left: 50%;
+  width: 0; height: 1.5px; background: white; border-radius: 1px;
+  transform: translateX(-50%); transition: width 0.3s ease;
+}
+.nav-link-item:hover::after { width: 70%; }
+@keyframes link-enter { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ── Login button ── */
+.nav-login-btn {
+  position: relative; overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,1), inset 0 -1px 0 rgba(0,0,0,0.08);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.nav-login-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,1); }
+.nav-login-btn:active { transform: translateY(0); box-shadow: 0 1px 4px rgba(0,0,0,0.2), inset 0 2px 4px rgba(0,0,0,0.12); }
+.nav-login-btn::after {
+  content: ''; position: absolute; top: 0; left: -120%; width: 60%; height: 100%;
+  background: linear-gradient(105deg, transparent, rgba(255,255,255,0.45), transparent);
+  transform: skewX(-15deg);
+  animation: btn-shine 3.5s ease-in-out infinite; animation-delay: 1.5s;
+}
+@keyframes btn-shine { 0% { left: -120%; } 40% { left: 160%; } 100% { left: 160%; } }
+
+/* ── Logo ── */
+.nav-logo {
+  transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.9);
+}
+.nav-logo:hover { transform: rotate(-8deg) scale(1.1); }
+
+/* ── Communities marquee ── */
+@keyframes marquee-scroll {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-33.333%); }
+}
+.marquee-track {
+  animation: marquee-scroll 28s linear infinite;
+}
+.marquee-track:hover {
+  animation-play-state: paused;
+}
+
+/* ── About 3D card ── */
+.card-3d-wrapper {
+  transform: perspective(900px) rotateY(-6deg) rotateX(3deg);
+  transition: transform 0.5s cubic-bezier(0.34,1.56,0.64,1);
+}
+.card-3d-wrapper:hover { transform: perspective(900px) rotateY(0deg) rotateX(0deg); }
+.card-3d {
+  box-shadow:
+    0 4px 8px rgba(0,0,0,0.06),
+    0 12px 24px rgba(0,0,0,0.10),
+    0 32px 64px rgba(0,0,0,0.14),
+    inset 0 1px 0 rgba(255,255,255,0.7);
+}
