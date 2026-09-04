@@ -1,45 +1,26 @@
 'use client';
 import { useState, FormEvent } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useAuth } from '@/context/AuthContext';
 
-type Role = 'student' | 'course_rep' | 'executive';
-
-const ROLES: { value: Role; label: string }[] = [
-  { value: 'student', label: 'Student' },
-  { value: 'course_rep', label: 'Course Rep' },
-  { value: 'executive', label: 'Executive' },
-];
-
-const ROLE_PATH: Record<Role, string> = {
-  student: '/dashboard/student',
-  course_rep: '/dashboard/course-rep',
-  executive: '/dashboard/executive',
-};
-
-export default function LoginPage() {
-  const router = useRouter();
-  const { login } = useAuth();
-
+export default function ForgotPasswordPage() {
+  const { forgotPassword } = useAuth();
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [selectedRole, setSelectedRole] = useState<Role>('student');
+  const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
+    setMessage('');
     setLoading(true);
-
     try {
-      await login(email, password, selectedRole);
-      router.push(ROLE_PATH[selectedRole]);
+      const msg = await forgotPassword(email);
+      setMessage(msg);
     } catch (err: any) {
-      const message = err?.response?.data?.message || 'Login failed. Check your details.';
-      setError(message);
+      setError(err?.response?.data?.message || 'Something went wrong. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -69,13 +50,12 @@ export default function LoginPage() {
             <div className="mb-8">
               <h1 className="text-2xl font-black text-gray-900"
                 style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                Welcome back
+                Forgot password?
               </h1>
-              <p className="text-gray-400 text-sm mt-1">Sign in to your NACOS account</p>
+              <p className="text-gray-400 text-sm mt-1">Enter your email and we'll send you a reset link</p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-5">
-
               <div>
                 <label className="block text-xs font-semibold text-gray-500 mb-1.5 tracking-wide uppercase"
                   style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
@@ -88,46 +68,14 @@ export default function LoginPage() {
                     transition-all duration-200" />
               </div>
 
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="block text-xs font-semibold text-gray-500 tracking-wide uppercase"
-                    style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                    Password
-                  </label>
-                  <Link href="/forgot-password" className="text-xs text-gray-400 hover:text-gray-700 transition">
-                    Forgot password?
-                  </Link>
-                </div>
-                <input type="password" required value={password} onChange={e => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-sm text-gray-900
-                    placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent
-                    transition-all duration-200" />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-2 tracking-wide uppercase"
-                  style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                  I am a
-                </label>
-                <div className="grid grid-cols-3 gap-2">
-                  {ROLES.map((role) => (
-                    <button key={role.value} type="button" onClick={() => setSelectedRole(role.value)}
-                      className={`py-2.5 px-3 rounded-xl text-sm font-semibold border transition-all duration-200
-                        ${selectedRole === role.value
-                          ? 'bg-gray-900 text-white border-gray-900 shadow-[0_4px_12px_rgba(0,0,0,0.2)]'
-                          : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400 hover:text-gray-700'
-                        }`}
-                      style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                      {role.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
               {error && (
                 <div className="px-4 py-3 rounded-xl bg-red-50 border border-red-100 text-red-600 text-sm">
                   {error}
+                </div>
+              )}
+              {message && (
+                <div className="px-4 py-3 rounded-xl bg-green-50 border border-green-100 text-green-700 text-sm">
+                  {message}
                 </div>
               )}
 
@@ -137,14 +85,12 @@ export default function LoginPage() {
                   shadow-[0_4px_12px_rgba(0,0,0,0.2)] hover:shadow-[0_6px_20px_rgba(0,0,0,0.25)]
                   transition-all duration-200 mt-1"
                 style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                {loading ? 'Signing in...' : 'Sign In'}
+                {loading ? 'Sending...' : 'Send Reset Link'}
               </button>
 
               <p className="text-center text-sm text-gray-400 pt-1">
-                Don't have an account?{' '}
-                <Link href="/signup" className="text-gray-900 font-semibold hover:underline">Sign up</Link>
+                <Link href="/login" className="text-gray-900 font-semibold hover:underline">Back to login</Link>
               </p>
-
             </form>
           </div>
         </div>

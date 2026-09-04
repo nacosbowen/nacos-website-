@@ -23,7 +23,11 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   activeRole: string;
   setActiveRole: (role: string) => void;
-  login: (email: string, matricNumber: string, selectedRole: string) => Promise<AuthUser>;
+  login: (email: string, password: string, selectedRole: string) => Promise<AuthUser>;
+  signup: (email: string, matricNumber: string, password: string) => Promise<string>;
+  forgotPassword: (email: string) => Promise<string>;
+  resetPassword: (email: string, token: string, newPassword: string) => Promise<string>;
+
   adminLogin: (email: string, password: string) => Promise<AuthUser>;
   logout: () => Promise<void>;
 }
@@ -86,13 +90,28 @@ useEffect(() => {
   };
 }, [user]);
 
-const login = async (email: string, matricNumber: string, selectedRole: string): Promise<AuthUser> => {
-  const { data } = await api.post('/auth/login', { email, matricNumber, selectedRole });
+const login = async (email: string, password: string, selectedRole: string): Promise<AuthUser> => {
+  const { data } = await api.post('/auth/login', { email, password, selectedRole });
   setToken(data.accessToken);
   setUser(data.user);
   setOverrideRole(selectedRole);
   localStorage.setItem(ACTIVE_ROLE_KEY, selectedRole);
   return data.user;
+};
+
+const signup = async (email: string, matricNumber: string, password: string): Promise<string> => {
+  const { data } = await api.post('/auth/signup', { email, matricNumber, password });
+  return data.message;
+};
+
+const forgotPassword = async (email: string): Promise<string> => {
+  const { data } = await api.post('/auth/forgot-password', { email });
+  return data.message;
+};
+
+const resetPassword = async (email: string, token: string, newPassword: string): Promise<string> => {
+  const { data } = await api.post('/auth/reset-password', { email, token, newPassword });
+  return data.message;
 };
 
 const adminLogin = async (email: string, password: string): Promise<AuthUser> => {
@@ -104,6 +123,7 @@ const adminLogin = async (email: string, password: string): Promise<AuthUser> =>
   return data.user;
 };
 
+
 const logout = async () => {
   try { await api.post('/auth/logout'); } finally {
     setToken(null);
@@ -114,7 +134,7 @@ const logout = async () => {
 };
 
 return (
-  <AuthContext.Provider value={{ user, isLoading, isAuthenticated: !!user, activeRole, setActiveRole, login, adminLogin, logout }}>
+  <AuthContext.Provider value={{ user, isLoading, isAuthenticated: !!user, activeRole, setActiveRole, login, signup, forgotPassword, resetPassword, adminLogin, logout }}>
     {children}
   </AuthContext.Provider>
 );
