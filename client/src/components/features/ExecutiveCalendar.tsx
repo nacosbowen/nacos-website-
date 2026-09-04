@@ -8,12 +8,16 @@ type NacosEvent = {
   description: string | null;
   date: string;
   location: string | null;
+  imageUrl: string | null;
+  price: number;
+  spots: number;
+  category: string;
   createdAt: string;
   _count: { rsvps: number };
 };
 
-const EMPTY_FORM = { title: '', description: '', date: '', location: '' };
-
+const CATEGORIES = ['Annual Dinner', 'Tech Talk', 'Workshop', 'Sports', 'Social', 'Competition', 'Other'];
+const EMPTY_FORM = { title: '', description: '', date: '', location: '', price: '0', spots: '0', category: 'Other' };
 export default function ExecutiveCalendar() {
   const [events, setEvents] = useState<NacosEvent[]>([]);
   const [showForm, setShowForm] = useState(false);
@@ -23,6 +27,9 @@ export default function ExecutiveCalendar() {
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState('');
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [uploadingImageFor, setUploadingImageFor] = useState<string | null>(null);
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5001';
+
 
   useEffect(() => {
     api.get('/events').then(r => {
@@ -36,38 +43,37 @@ export default function ExecutiveCalendar() {
     setTimeout(() => setToast(''), 3000);
   }
 
-  async function handleSave() {
-    if (!form.title || !form.date) return;
-    setSaving(true);
-    try {
-      if (editing) {
-        const { data } = await api.patch(`/events/${editing}`, {
-          title: form.title,
-          description: form.description || null,
-          date: new Date(form.date).toISOString(),
-          location: form.location || null,
-        });
-        setEvents(prev => prev.map(e => e.id === editing ? { ...data, _count: e._count } : e));
-        flash('Event updated ✓');
-      } else {
-        const { data } = await api.post('/events', {
-          title: form.title,
-          description: form.description || null,
-          date: new Date(form.date).toISOString(),
-          location: form.location || null,
-        });
-        setEvents(prev => [{ ...data, _count: { rsvps: 0 } }, ...prev]);
-        flash('Event created ✓');
-      }
-      setForm(EMPTY_FORM);
-      setEditing(null);
-      setShowForm(false);
-    } catch (err: any) {
-      flash(err?.response?.data?.message || 'Failed to save event');
-    } finally {
-      setSaving(false);
+ async function handleSave() {
+  if (!form.title || !form.date) return;
+  setSaving(true);
+  try {
+    const payload = {
+      title: form.title,
+      description: form.description || null,
+      date: new Date(form.date).toISOString(),
+      location: form.location || null,
+      price: Number(form.price) || 0,
+      spots: Number(form.spots) || 0,
+      category: form.category,
+    };
+    if (editing) {
+      const { data } = await api.patch(`/events/${editing}`, payload);
+      setEvents(prev => prev.map(e => e.id === editing ? { ...data, _count: e._count } : e));
+      flash('Event updated ✓');
+    } else {
+      const { data } = await api.post('/events', payload);
+      setEvents(prev => [{ ...data, _count: { rsvps: 0 } }, ...prev]);
+      flash('Event created ✓');
     }
+    setForm(EMPTY_FORM);
+    setEditing(null);
+    setShowForm(false);
+  } catch (err: any) {
+    flash(err?.response?.data?.message || 'Failed to save event');
+  } finally {
+    setSaving(false);
   }
+}
 
   async function handleDelete(id: string) {
     try {
@@ -80,21 +86,23 @@ export default function ExecutiveCalendar() {
     }
   }
 
-  function startEdit(event: NacosEvent) {
-    const localDate = new Date(event.date);
-    const pad = (n: number) => String(n).padStart(2, '0');
-    const dateLocal = `${localDate.getFullYear()}-${pad(localDate.getMonth() + 1)}-${pad(localDate.getDate())}T${pad(localDate.getHours())}:${pad(localDate.getMinutes())}`;
-    setForm({
-      title: event.title,
-      description: event.description ?? '',
-      date: dateLocal,
-      location: event.location ?? '',
-    });
-    setEditing(event.id);
-    setShowForm(true);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
-
+ function startEdit(event: NacosEvent) {
+  const localDate = new Date(event.date);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const dateLocal = `${localDate.getFullYear()}-${pad(localDate.getMonth() + 1)}-${pad(localDate.getDate())}T${pad(localDate.getHours())}:${pad(localDate.getMinutes())}`;
+  setForm({
+    title: event.title,
+    description: event.description ?? '',
+    date: dateLocal,
+    location: event.location ?? '',
+    price: String(event.price),
+    spots: String(event.spots),
+    category: event.category,
+  });
+  setEditing(event.id);
+  setShowForm(true);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
   const sorted = [...events].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
   if (loading) {
@@ -104,6 +112,22 @@ export default function ExecutiveCalendar() {
       </div>
     );
   }
+  async function handleImageUpload(eventId: string, file: File) {
+  setUploadingImageFor(eventId);
+  try {
+    const fd = new FormData();
+    fd.append('file', file);
+    const { data } = await api.post(`/events/${eventId}/image`, fd, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    setEvents(prev => prev.map(e => e.id === eventId ? { ...e, imageUrl: data.imageUrl } : e));
+    flash('Image uploaded ✓');
+  } catch (err: any) {
+    flash(err?.response?.data?.message || 'Failed to upload image');
+  } finally {
+    setUploadingImageFor(null);
+  }
+}
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
@@ -155,6 +179,25 @@ export default function ExecutiveCalendar() {
                 placeholder="e.g. CS Lecture Hall 1"
                 className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900" />
             </div>
+            <div className="grid grid-cols-3 gap-3">
+  <div>
+    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">Category</label>
+    <select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
+      className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900">
+      {CATEGORIES.map(c => <option key={c}>{c}</option>)}
+    </select>
+  </div>
+  <div>
+    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">Price (₦, 0 = Free)</label>
+    <input type="number" min="0" value={form.price} onChange={e => setForm(f => ({ ...f, price: e.target.value }))}
+      className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900" />
+  </div>
+  <div>
+    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">Spots (0 = Unlimited)</label>
+    <input type="number" min="0" value={form.spots} onChange={e => setForm(f => ({ ...f, spots: e.target.value }))}
+      className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900" />
+  </div>
+</div>
             <div>
               <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">Description</label>
               <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
@@ -186,9 +229,13 @@ export default function ExecutiveCalendar() {
           {sorted.map(event => {
             const d = new Date(event.date);
             const isPast = d < new Date();
-            return (
+              return (
               <div key={event.id} className={`bg-white rounded-2xl border p-5 shadow-[0_2px_8px_rgba(0,0,0,0.06)]
                 ${isPast ? 'border-gray-100 opacity-70' : 'border-gray-200'}`}>
+                {event.imageUrl && (
+                  <img src={`${baseUrl}${event.imageUrl}`} alt={event.title}
+                    className="w-full h-32 object-cover rounded-xl mb-4" />
+                )}
                 <div className="flex items-start gap-4">
                   <div className="flex-shrink-0 w-12 text-center">
                     <p className="text-xl font-black text-gray-900" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{d.getDate()}</p>
@@ -232,6 +279,17 @@ export default function ExecutiveCalendar() {
                       </button>
                     )}
                   </div>
+                </div>
+                <div className="mt-3 pt-3 border-t border-gray-100">
+                  <label className="text-xs text-gray-400 cursor-pointer hover:text-gray-600">
+                    {uploadingImageFor === event.id ? 'Uploading...' : event.imageUrl ? 'Change image' : '+ Add image'}
+                    <input type="file" accept="image/*" className="hidden"
+                      disabled={uploadingImageFor === event.id}
+                      onChange={e => {
+                        const file = e.target.files?.[0];
+                        if (file) handleImageUpload(event.id, file);
+                      }} />
+                  </label>
                 </div>
               </div>
             );

@@ -1,7 +1,15 @@
 'use client';
 import { useState, useEffect } from 'react';
+import api from '@/lib/api';
+import { useAuth } from '@/context/AuthContext';
 
-type ArchiveItem = { id: string; title: string; type: string; year: string; category: string; desc: string; addedAt: number };
+const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5001';
+
+type ArchiveImage = { id: string; imageUrl: string };
+type ArchiveItem = {
+  id: string; title: string; type: string; year: string; category: string;
+  description: string | null; createdAt: string; images: ArchiveImage[];
+};
 
 const TYPE_ICONS: Record<string, string> = {
   Gallery: '🖼', Document: '📄', Video: '🎬', Report: '📊', Newsletter: '📰', Other: '📁',
@@ -17,21 +25,21 @@ const CAT_STYLE: Record<string, string> = {
 };
 
 export default function NacosArchive() {
+  const { isLoading: authLoading } = useAuth();
   const [items, setItems] = useState<ArchiveItem[]>([]);
   const [search, setSearch] = useState('');
   const [yearFilter, setYearFilter] = useState('All');
   const [catFilter, setCatFilter] = useState('All');
   const [loading, setLoading] = useState(true);
+  const [lightbox, setLightbox] = useState<string | null>(null);
 
   useEffect(() => {
-    const load = () => {
-      try { setItems(JSON.parse(localStorage.getItem('nacos_archive') ?? '[]')); } catch { setItems([]); }
+    if (authLoading) return;
+    api.get('/archive').then(r => {
+      setItems(r.data);
       setLoading(false);
-    };
-    load();
-    const id = setInterval(load, 5000);
-    return () => clearInterval(id);
-  }, []);
+    }).catch(() => setLoading(false));
+  }, [authLoading]);
 
   const years = ['All', ...Array.from(new Set(items.map(i => i.year))).sort((a, b) => Number(b) - Number(a))];
   const cats = ['All', ...Array.from(new Set(items.map(i => i.category)))];
@@ -39,7 +47,8 @@ export default function NacosArchive() {
   const filtered = items.filter(item => {
     if (yearFilter !== 'All' && item.year !== yearFilter) return false;
     if (catFilter !== 'All' && item.category !== catFilter) return false;
-    if (search && !item.title.toLowerCase().includes(search.toLowerCase()) && !item.desc.toLowerCase().includes(search.toLowerCase())) return false;
+    const desc = item.description ?? '';
+    if (search && !item.title.toLowerCase().includes(search.toLowerCase()) && !desc.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });
 
@@ -51,6 +60,12 @@ export default function NacosArchive() {
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
+      {lightbox && (
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={() => setLightbox(null)}>
+          <img src={`${baseUrl}${lightbox}`} alt="" className="max-w-full max-h-full rounded-xl" />
+        </div>
+      )}
+
       <div>
         <h2 className="text-xl font-black text-gray-900" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>NACOS Archive</h2>
         <p className="text-sm text-gray-400 mt-0.5">Historical records, photos, and documents · {items.length} item{items.length !== 1 ? 's' : ''}</p>
@@ -86,10 +101,6 @@ export default function NacosArchive() {
 
       {items.length === 0 ? (
         <div className="bg-white rounded-2xl border border-gray-100 p-14 text-center shadow-[0_2px_4px_rgba(0,0,0,0.04)]">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}
-            className="w-12 h-12 text-gray-200 mx-auto mb-4">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
-          </svg>
           <p className="text-sm font-semibold text-gray-400" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Archive is empty</p>
           <p className="text-xs text-gray-300 mt-1">Historical records will appear here when added by the executives</p>
         </div>
@@ -102,22 +113,33 @@ export default function NacosArchive() {
           {filtered.map(item => {
             const catStyle = CAT_STYLE[item.category] ?? CAT_STYLE.Other;
             return (
-              <div key={item.id} className="bg-white rounded-2xl border border-gray-100 p-5 flex items-start gap-4
+              <div key={item.id} className="bg-white rounded-2xl border border-gray-100 p-5
                 shadow-[0_2px_4px_rgba(0,0,0,0.04)]">
-                <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center flex-shrink-0 text-xl">
-                  {TYPE_ICONS[item.type] ?? '📁'}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap mb-1">
-                    <span className="text-xs font-bold text-gray-600 bg-gray-100 px-2 py-0.5 rounded-full"
-                      style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{item.year}</span>
-                    <span className={`text-[10px] font-bold border px-2 py-0.5 rounded-full ${catStyle}`}
-                      style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{item.category}</span>
-                    <span className="text-[10px] text-gray-400">{item.type}</span>
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center flex-shrink-0 text-xl">
+                    {TYPE_ICONS[item.type] ?? '📁'}
                   </div>
-                  <p className="text-sm font-semibold text-gray-800">{item.title}</p>
-                  {item.desc && <p className="text-xs text-gray-400 mt-1 leading-relaxed">{item.desc}</p>}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                      <span className="text-xs font-bold text-gray-600 bg-gray-100 px-2 py-0.5 rounded-full"
+                        style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{item.year}</span>
+                      <span className={`text-[10px] font-bold border px-2 py-0.5 rounded-full ${catStyle}`}
+                        style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{item.category}</span>
+                      <span className="text-[10px] text-gray-400">{item.type}</span>
+                    </div>
+                    <p className="text-sm font-semibold text-gray-800">{item.title}</p>
+                    {item.description && <p className="text-xs text-gray-400 mt-1 leading-relaxed">{item.description}</p>}
+                  </div>
                 </div>
+                {item.images.length > 0 && (
+                  <div className="grid grid-cols-4 gap-2 mt-4">
+                    {item.images.map(img => (
+                      <img key={img.id} src={`${baseUrl}${img.imageUrl}`} alt=""
+                        onClick={() => setLightbox(img.imageUrl)}
+                        className="w-full h-20 object-cover rounded-lg cursor-pointer hover:opacity-80 transition" />
+                    ))}
+                  </div>
+                )}
               </div>
             );
           })}

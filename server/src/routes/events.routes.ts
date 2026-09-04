@@ -12,6 +12,10 @@ import {
 } from '../controllers/events.controller';
 import { requireAuth } from '../middleware/auth.middleware';
 import { requireRole } from '../middleware/role.middleware';
+import { uploadEventImage as uploadEventImageMiddleware } from '../middleware/upload.middleware';
+import { uploadEventImage } from '../controllers/events.controller'; // add to existing import
+
+
 
 const router = Router();
 
@@ -27,5 +31,6 @@ router.post('/:id/rsvp', rsvpEvent);
 router.delete('/:id/rsvp', cancelRsvp);
 router.get('/:id/rsvp/me', getMyRsvp);
 router.get('/:id/rsvps', requireRole('executive', 'admin'), getEventRsvps);
+router.post('/:id/image', requireRole('executive', 'admin'), uploadEventImageMiddleware.single('file'), uploadEventImage);
 
 export default router;

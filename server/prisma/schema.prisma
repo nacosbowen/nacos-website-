@@ -53,6 +53,7 @@ model Department {
   users            User[]
   courseRepAssigns CourseRepAssignment[]
   timetableEntries TimetableEntry[]
+  examEntries      ExamEntry[]
 }
 
 model User {
@@ -169,6 +170,10 @@ model Event {
   description String?
   date        DateTime
   location    String?
+  imageUrl    String?
+  price       Int      @default(0)
+  spots       Int      @default(0)
+  category    String   @default("Other")
   createdById String
   createdAt   DateTime @default(now())
 
@@ -186,6 +191,36 @@ model EventRsvp {
   event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
   @@unique([userId, eventId])
+}
+
+model DinnerInfo {
+  id           String   @id @default(uuid())
+  title        String   @default("NACOS Annual Dinner")
+  date         DateTime?
+  time         String   @default("6:00 PM")
+  venue        String   @default("Bowen University Recreation Center")
+  theme        String   @default("Black & Gold")
+  dressCode    String   @default("Black tie / formal. Gold accessories encouraged.")
+  ticketPrice  String   @default("5000")
+  highlights   String   @default("Live performances\nAward ceremony\nNetworking\nPhoto booth")
+  imageUrl     String?
+  updatedById  String?
+  updatedAt    DateTime @updatedAt
+}
+
+model ExamEntry {
+  id           String   @id @default(uuid())
+  departmentId Int
+  level        Int
+  courseCode   String
+  courseTitle  String
+  date         DateTime
+  time         String
+  duration     String
+  venue        String?
+  createdAt    DateTime @default(now())
+
+  department Department @relation(fields: [departmentId], references: [id])
 }
 
 model TimetableEntry {
@@ -246,4 +281,27 @@ model PushSubscription {
   auth     String
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+
+model ArchiveItem {
+  id          String   @id @default(uuid())
+  title       String
+  type        String
+  year        String
+  category    String
+  description String?
+  createdById String
+  createdAt   DateTime @default(now())
+
+  images ArchiveImage[]
+}
+
+model ArchiveImage {
+  id            String   @id @default(uuid())
+  archiveItemId String
+  imageUrl      String
+  createdAt     DateTime @default(now())
+
+  archiveItem ArchiveItem @relation(fields: [archiveItemId], references: [id], onDelete: Cascade)
 }

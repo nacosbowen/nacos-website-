@@ -1,8 +1,9 @@
 import { Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
+import { asyncHandler } from '../utils/asyncHandler';
 
 // GET /api/timetable?departmentId=&level=
-export const getTimetable = async (req: Request, res: Response) => {
+export const getTimetable = asyncHandler(async (req: Request, res: Response) => {
   const { departmentId, level } = req.query;
 
   if (!departmentId || !level) {
@@ -18,10 +19,10 @@ export const getTimetable = async (req: Request, res: Response) => {
   });
 
   return res.json(entries);
-};
+});
 
 // POST /api/timetable  (course_rep / admin)
-export const createTimetableEntry = async (req: Request, res: Response) => {
+export const createTimetableEntry = asyncHandler(async (req: Request, res: Response) => {
   const { departmentId, level, courseCode, courseTitle, day, startTime, endTime, venue } = req.body;
 
   if (!departmentId || !level || !courseCode || !courseTitle || !day || !startTime || !endTime) {
@@ -42,10 +43,10 @@ export const createTimetableEntry = async (req: Request, res: Response) => {
   });
 
   return res.status(201).json(entry);
-};
+});
 
 // PATCH /api/timetable/:id  (course_rep / admin)
-export const updateTimetableEntry = async (req: Request, res: Response) => {
+export const updateTimetableEntry = asyncHandler(async (req: Request, res: Response) => {
   const { courseCode, courseTitle, day, startTime, endTime, venue } = req.body;
 
   const entry = await prisma.timetableEntry.update({
@@ -61,10 +62,10 @@ export const updateTimetableEntry = async (req: Request, res: Response) => {
   });
 
   return res.json(entry);
-};
+});
 
 // DELETE /api/timetable/:id  (course_rep / admin)
-export const deleteTimetableEntry = async (req: Request, res: Response) => {
+export const deleteTimetableEntry = asyncHandler(async (req: Request, res: Response) => {
   await prisma.timetableEntry.delete({ where: { id: req.params.id } });
   return res.json({ message: 'Entry deleted' });
-};
+});

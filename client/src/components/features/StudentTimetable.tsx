@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import api from '@/lib/api'
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 const MSG_TYPES: Record<string, { label: string; color: string; icon: string }> = {
@@ -15,26 +16,52 @@ type ClassEntry = { id: string; name: string; code: string; day: string; start: 
 type Message = { id: string; type: string; text: string; course: string; timestamp: number };
 
 export default function StudentTimetable() {
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const level = user?.level ?? 200;
+  const departmentId = user?.department?.id;
 
   const [classes, setClasses] = useState<ClassEntry[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [ttLoading, setTtLoading] = useState(true);
   const [activeDay, setActiveDay] = useState(() => {
     const d = new Date().getDay();
     return d >= 1 && d <= 5 ? DAYS[d - 1] : 'Monday';
   });
 
+
   useEffect(() => {
-    const loadData = () => {
-      const storedClasses = localStorage.getItem(`nacos_timetable_${level}L`);
-      const storedMsgs = localStorage.getItem(`nacos_messages_${level}L`);
-      if (storedClasses) setClasses(JSON.parse(storedClasses));
-      if (storedMsgs) setMessages(JSON.parse(storedMsgs));
+    if (authLoading || !departmentId) return;
+
+    const fetchTimetable = async () => {
+      setTtLoading(true);
+      try {
+        const { data } = await api.get('/timetable', { params: { departmentId, level } });
+        const mapped: ClassEntry[] = data.map((e: any) => ({
+          id: e.id,
+          name: e.courseTitle,
+          code: e.courseCode,
+          day: e.day.charAt(0) + e.day.slice(1).toLowerCase(),
+          start: e.startTime,
+          end: e.endTime,
+          venue: e.venue || '',
+        }));
+        setClasses(mapped);
+      } catch {
+        setClasses([]);
+      } finally {
+        setTtLoading(false);
+      }
     };
-    loadData();
-    const interval = setInterval(loadData, 5000);
+
+    fetchTimetable();
+    const interval = setInterval(fetchTimetable, 30000);
     return () => clearInterval(interval);
+  }, [departmentId, level, authLoading]);
+
+  // Keep messages on localStorage for now — separate task
+  useEffect(() => {
+    const storedMsgs = localStorage.getItem(`nacos_messages_${level}L`);
+    if (storedMsgs) setMessages(JSON.parse(storedMsgs));
   }, [level]);
 
   const todayClasses = classes

@@ -4,14 +4,7 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
 
-@font-face {
-  font-family: 'Ranade';
-  src: url('/fonts/Ranade-Bold.woff2') format('woff2'),
-       url('/fonts/Ranade-Bold.ttf') format('truetype');
-  font-weight: 700;
-  font-style: normal;
-  font-display: swap;
-}
+
 
 * { box-sizing: border-box; }
 body { font-family: 'Inter', sans-serif; background: white; }

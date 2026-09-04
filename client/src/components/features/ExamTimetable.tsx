@@ -1,31 +1,45 @@
 'use client';
 import { useState, useEffect } from 'react';
+import { useAuth } from '@/context/AuthContext';
+import api from '@/lib/api';
 
-const LEVELS = ['All', '100L', '200L', '300L', '400L'];
-const DEPTS = ['All', 'Computer Science', 'Software Engineering', 'Cyber Security', 'Information Technology'];
-
-type Exam = { id: string; code: string; course: string; date: string; time: string; venue: string; level: string; dept: string; duration: string };
+type Exam = {
+  id: string; courseCode: string; courseTitle: string;
+  date: string; time: string; duration: string; venue: string | null;
+};
 
 export default function ExamTimetable() {
+  const { user, isLoading: authLoading } = useAuth();
+  const departmentId = user?.department?.id;
+  const level = user?.level;
+
   const [exams, setExams] = useState<Exam[]>([]);
-  const [levelFilter, setLevelFilter] = useState('All');
-  const [deptFilter, setDeptFilter] = useState('All');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const load = () => {
-      try { setExams(JSON.parse(localStorage.getItem('nacos_exams') ?? '[]')); } catch { setExams([]); }
-      setLoading(false);
+    if (authLoading || !departmentId || !level) return;
+
+    const fetchExams = async () => {
+      setLoading(true);
+      try {
+        const { data } = await api.get('/exams', { params: { departmentId, level } });
+        setExams(data);
+      } catch {
+        setExams([]);
+      } finally {
+        setLoading(false);
+      }
     };
-    load();
-    const id = setInterval(load, 5000);
+
+    fetchExams();
+    const id = setInterval(fetchExams, 30000);
     return () => clearInterval(id);
-  }, []);
+  }, [departmentId, level, authLoading]);
 
   const today = new Date(); today.setHours(0, 0, 0, 0);
 
   function badge(dateStr: string) {
-    const d = new Date(dateStr + 'T12:00:00'); d.setHours(0, 0, 0, 0);
+    const d = new Date(dateStr); d.setHours(0, 0, 0, 0);
     const diff = Math.floor((d.getTime() - today.getTime()) / 86400000);
     if (diff === 0) return { label: 'TODAY', cls: 'bg-red-600 text-white' };
     if (diff === 1) return { label: 'TOMORROW', cls: 'bg-orange-500 text-white' };
@@ -33,12 +47,9 @@ export default function ExamTimetable() {
     return null;
   }
 
-  const filtered = exams
-    .filter(e => (levelFilter === 'All' || e.level === levelFilter) && (deptFilter === 'All' || e.dept === deptFilter))
-    .sort((a, b) => a.date.localeCompare(b.date));
-
-  const upcoming = filtered.filter(e => new Date(e.date + 'T12:00:00') >= today);
-  const past = filtered.filter(e => new Date(e.date + 'T12:00:00') < today);
+  const sorted = [...exams].sort((a, b) => a.date.localeCompare(b.date));
+  const upcoming = sorted.filter(e => new Date(e.date) >= today);
+  const past = sorted.filter(e => new Date(e.date) < today);
 
   if (loading) return (
     <div className="max-w-3xl mx-auto space-y-3 animate-pulse">
@@ -50,22 +61,9 @@ export default function ExamTimetable() {
     <div className="max-w-3xl mx-auto space-y-6">
       <div>
         <h2 className="text-xl font-black text-gray-900" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Exam Timetable</h2>
-        <p className="text-sm text-gray-400 mt-0.5">Published exam schedule · auto-refreshes</p>
-      </div>
-
-      <div className="flex gap-3 flex-wrap">
-        <select value={levelFilter} onChange={e => setLevelFilter(e.target.value)}
-          className="px-3 py-2 rounded-xl border border-gray-200 bg-white text-xs font-semibold text-gray-600
-            focus:outline-none focus:ring-2 focus:ring-gray-900"
-          style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-          {LEVELS.map(l => <option key={l}>{l}</option>)}
-        </select>
-        <select value={deptFilter} onChange={e => setDeptFilter(e.target.value)}
-          className="px-3 py-2 rounded-xl border border-gray-200 bg-white text-xs font-semibold text-gray-600
-            focus:outline-none focus:ring-2 focus:ring-gray-900"
-          style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-          {DEPTS.map(d => <option key={d}>{d}</option>)}
-        </select>
+        <p className="text-sm text-gray-400 mt-0.5">
+          {level}L · {user?.department?.name} · auto-refreshes
+        </p>
       </div>
 
       {exams.length === 0 ? (
@@ -85,21 +83,20 @@ export default function ExamTimetable() {
                 style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Upcoming · {upcoming.length}</p>
               {upcoming.map(exam => {
                 const b = badge(exam.date);
-                const d = new Date(exam.date + 'T12:00:00');
+                const d = new Date(exam.date);
                 return (
                   <div key={exam.id} className="bg-white rounded-2xl border border-gray-100 p-5
                     shadow-[0_2px_4px_rgba(0,0,0,0.04)]">
                     <div className="flex items-center gap-2 flex-wrap mb-1.5">
                       <span className="text-sm font-black text-gray-900"
-                        style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{exam.code}</span>
-                      <span className="text-[10px] font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">{exam.level}</span>
+                        style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{exam.courseCode}</span>
                       {b && <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${b.cls}`}>{b.label}</span>}
                     </div>
-                    <p className="text-sm font-semibold text-gray-800">{exam.course}</p>
+                    <p className="text-sm font-semibold text-gray-800">{exam.courseTitle}</p>
                     <div className="flex items-center gap-2 mt-2 text-xs text-gray-400 flex-wrap">
                       <span>{d.toLocaleDateString('en-NG', { weekday: 'short', day: 'numeric', month: 'short' })}</span>
                       <span>·</span><span>{exam.time}</span>
-                      <span>·</span><span>{exam.venue}</span>
+                      <span>·</span><span>{exam.venue || 'TBA'}</span>
                       <span>·</span><span>{exam.duration}</span>
                     </div>
                   </div>
@@ -117,21 +114,14 @@ export default function ExamTimetable() {
                   shadow-[0_2px_4px_rgba(0,0,0,0.04)]">
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-sm font-black text-gray-700"
-                      style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{exam.code}</span>
-                    <span className="text-[10px] font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">{exam.level}</span>
+                      style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{exam.courseCode}</span>
                   </div>
-                  <p className="text-sm text-gray-600">{exam.course}</p>
+                  <p className="text-sm text-gray-600">{exam.courseTitle}</p>
                   <p className="text-xs text-gray-400 mt-0.5">
-                    {new Date(exam.date + 'T12:00:00').toLocaleDateString('en-NG', { weekday: 'short', day: 'numeric', month: 'short' })} · {exam.time}
+                    {new Date(exam.date).toLocaleDateString('en-NG', { weekday: 'short', day: 'numeric', month: 'short' })} · {exam.time}
                   </p>
                 </div>
               ))}
-            </div>
-          )}
-
-          {filtered.length === 0 && (
-            <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center">
-              <p className="text-sm text-gray-400">No exams match your filter</p>
             </div>
           )}
         </div>

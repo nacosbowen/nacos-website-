@@ -1,8 +1,9 @@
 'use client';
 import { useState, useEffect } from 'react';
+import { useAuth } from '@/context/AuthContext';
 import api from '@/lib/api';
 
-const LEVELS = ['All', '100', '200', '300', '400', '500'];
+const YEARS = Array.from({ length: 2026 - 2016 + 1 }, (_, i) => 2026 - i); // [2026, 2025, ..., 2016]
 
 type PQ = {
   id: string;
@@ -15,19 +16,27 @@ type PQ = {
 };
 
 export default function PastQuestions() {
+  const { user, isLoading: authLoading } = useAuth();
+  const level = user?.level;
+
   const [questions, setQuestions] = useState<PQ[]>([]);
   const [search, setSearch] = useState('');
-  const [level, setLevel] = useState('All');
+  const [year, setYear] = useState<number | 'All'>('All');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (authLoading || !level) return;
+
     const params = new URLSearchParams();
-    if (level !== 'All') params.set('level', level);
+    params.set('level', String(level));
+    if (year !== 'All') params.set('year', String(year));
+
+    setLoading(true);
     api.get(`/past-questions?${params}`).then(r => {
       setQuestions(r.data);
       setLoading(false);
     }).catch(() => setLoading(false));
-  }, [level]);
+  }, [level, year, authLoading]);
 
   const filtered = questions.filter(q => {
     if (!search) return true;
@@ -47,7 +56,9 @@ export default function PastQuestions() {
     <div className="max-w-3xl mx-auto space-y-6">
       <div>
         <h2 className="text-xl font-black text-gray-900" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Past Questions</h2>
-        <p className="text-sm text-gray-400 mt-0.5">Browse and download past exam questions · {questions.length} available</p>
+        <p className="text-sm text-gray-400 mt-0.5">
+          Browse and download past exam questions · {level}L · {questions.length} available
+        </p>
       </div>
 
       <div className="flex gap-3 flex-wrap">
@@ -61,13 +72,16 @@ export default function PastQuestions() {
             className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 bg-white text-sm
               focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent" />
         </div>
-        <select value={level} onChange={e => setLevel(e.target.value)}
+        <select value={year} onChange={e => setYear(e.target.value === 'All' ? 'All' : Number(e.target.value))}
           className="px-3 py-2 rounded-xl border border-gray-200 bg-white text-xs font-semibold text-gray-600
             focus:outline-none focus:ring-2 focus:ring-gray-900"
           style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-          {LEVELS.map(l => <option key={l}>{l === 'All' ? 'All Levels' : `${l}L`}</option>)}
+          <option value="All">All Years</option>
+          {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
         </select>
       </div>
+
+      {/* rest of the JSX (empty states, results list) stays exactly the same */}
 
       {questions.length === 0 ? (
         <div className="bg-white rounded-2xl border border-gray-100 p-14 text-center shadow-[0_2px_4px_rgba(0,0,0,0.04)]">

@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import api from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 
-const LEVELS = [100, 200, 300, 400, 500];
+const LEVELS = [100, 200, 300, 400];
 const EMPTY = { title: '', courseCode: '', year: new Date().getFullYear().toString(), level: '300' };
 
 type PQ = {
@@ -28,6 +28,7 @@ export default function ManagePastQuestions() {
   const fileRef = useRef<HTMLInputElement>(null);
 
   const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5001';
+const YEARS = Array.from({ length: 2026 - 2016 + 1 }, (_, i) => 2026 - i); // [2026, 2025, ..., 2016]
 
   useEffect(() => {
     if (!user) return;
@@ -123,11 +124,12 @@ export default function ManagePastQuestions() {
                 className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900" />
             </div>
             <div>
-              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">Year</label>
-              <input value={form.year} onChange={e => setForm(f => ({ ...f, year: e.target.value }))}
-                placeholder="e.g. 2024"
-                className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900" />
-            </div>
+  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">Year</label>
+  <select value={form.year} onChange={e => setForm(f => ({ ...f, year: e.target.value }))}
+    className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900">
+    {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
+  </select>
+</div>
             <div>
               <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">Level</label>
               <select value={form.level} onChange={e => setForm(f => ({ ...f, level: e.target.value }))}
@@ -148,9 +150,21 @@ export default function ManagePastQuestions() {
                 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-gray-200 file:text-gray-700
                 hover:file:bg-gray-300"
             />
-            {file && (
-              <p className="text-xs text-gray-400 mt-1">{file.name} · {(file.size / 1024 / 1024).toFixed(1)} MB</p>
-            )}
+           {file && (
+  <div className="flex items-center gap-2 mt-1">
+    <p className="text-xs text-gray-400">{file.name} · {(file.size / 1024 / 1024).toFixed(1)} MB</p>
+    <button
+      type="button"
+      onClick={() => {
+        setFile(null);
+        if (fileRef.current) fileRef.current.value = '';
+      }}
+      className="text-xs text-red-500 hover:text-red-600 font-semibold"
+    >
+      Remove
+    </button>
+  </div>
+)}
           </div>
           <div className="flex gap-2 pt-1">
             <button onClick={handleUpload}

@@ -80,7 +80,7 @@ export default function RolePickerPage() {
             className="rounded-full object-cover border border-gray-200 shadow-sm" />
           <Image src="/images (32).jpeg" alt="Bowen" width={36} height={36}
             className="rounded-full object-cover border border-gray-200 shadow-sm" />
-          <span className="text-base font-black text-gray-900" style={{ fontFamily: 'Ranade, sans-serif' }}>
+          <span className="text-base font-black text-gray-900" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
             NACOS BOWEN
           </span>
         </div>

@@ -1,44 +1,16 @@
 'use client';
 import { useState, useEffect } from 'react';
+import api from '@/lib/api';
+import { useAuth } from '@/context/AuthContext';
 
-type RsvpEvent = {
-  id: string; title: string; date: string; time: string; venue: string;
-  price: number; spots: number; category: string; desc: string; createdAt: number;
+type NacosEvent = {
+  id: string; title: string; description: string | null; date: string;
+  location: string | null; imageUrl: string | null;
+  price: number; spots: number; category: string;
+  createdAt: string; _count: { rsvps: number };
 };
 
-function getVoterId(): string {
-  const stored = localStorage.getItem('nacos_voter_id');
-  if (stored) return stored;
-  const id = Math.random().toString(36).slice(2) + Date.now().toString(36);
-  localStorage.setItem('nacos_voter_id', id);
-  return id;
-}
-
-function loadEvents(): RsvpEvent[] {
-  try { return JSON.parse(localStorage.getItem('nacos_rsvp_events') ?? '[]'); } catch { return []; }
-}
-
-function loadMyRsvps(voterId: string): Record<string, { ticketCode: string; rsvpedAt: number }> {
-  try {
-    const all = JSON.parse(localStorage.getItem('nacos_rsvp_tickets') ?? '{}') as Record<string, Record<string, unknown>>;
-    return (all[voterId] ?? {}) as Record<string, { ticketCode: string; rsvpedAt: number }>;
-  } catch { return {}; }
-}
-
-function saveRsvp(voterId: string, eventId: string, ticketCode: string) {
-  try {
-    const all = JSON.parse(localStorage.getItem('nacos_rsvp_tickets') ?? '{}') as Record<string, Record<string, unknown>>;
-    all[voterId] = { ...(all[voterId] ?? {}), [eventId]: { ticketCode, rsvpedAt: Date.now() } };
-    localStorage.setItem('nacos_rsvp_tickets', JSON.stringify(all));
-  } catch { /* ignore */ }
-}
-
-function getRsvpCount(eventId: string): number {
-  try {
-    const all = JSON.parse(localStorage.getItem('nacos_rsvp_tickets') ?? '{}') as Record<string, Record<string, unknown>>;
-    return Object.values(all).filter(v => v[eventId]).length;
-  } catch { return 0; }
-}
+type MyRsvp = { ticketCode: string; rsvpAt: string };
 
 const CAT_STYLE: Record<string, string> = {
   'Annual Dinner': 'bg-yellow-50 text-yellow-700 border-yellow-200',
@@ -50,31 +22,48 @@ const CAT_STYLE: Record<string, string> = {
   'Other': 'bg-gray-50 text-gray-600 border-gray-200',
 };
 
+const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5001';
+
 export default function RsvpTickets() {
-  const [events, setEvents] = useState<RsvpEvent[]>([]);
-  const [myRsvps, setMyRsvps] = useState<Record<string, { ticketCode: string; rsvpedAt: number }>>({});
-  const [voterId, setVoterId] = useState('');
-  const [ticket, setTicket] = useState<{ event: RsvpEvent; code: string } | null>(null);
+  const { isLoading: authLoading } = useAuth();
+  const [events, setEvents] = useState<NacosEvent[]>([]);
+  const [myRsvps, setMyRsvps] = useState<Record<string, MyRsvp>>({});
+  const [ticket, setTicket] = useState<{ event: NacosEvent; code: string } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [rsvping, setRsvping] = useState<string | null>(null);
 
   useEffect(() => {
-    const id = getVoterId();
-    setVoterId(id);
-    const load = () => {
-      setEvents(loadEvents());
-      setMyRsvps(loadMyRsvps(id));
+    if (authLoading) return;
+    api.get('/events').then(async (r) => {
+      const evs: NacosEvent[] = r.data;
+      setEvents(evs);
+      // check RSVP status for each event
+      const results = await Promise.all(
+        evs.map((e) => api.get(`/events/${e.id}/rsvp/me`).then(res => ({ id: e.id, data: res.data })).catch(() => null))
+      );
+      const map: Record<string, MyRsvp> = {};
+      results.forEach((r) => {
+        if (r && r.data.rsvped && r.data.rsvp) {
+          map[r.id] = { ticketCode: r.data.rsvp.ticketCode, rsvpAt: r.data.rsvp.rsvpAt };
+        }
+      });
+      setMyRsvps(map);
       setLoading(false);
-    };
-    load();
-    const interval = setInterval(load, 5000);
-    return () => clearInterval(interval);
-  }, []);
+    }).catch(() => setLoading(false));
+  }, [authLoading]);
 
-  function rsvp(event: RsvpEvent) {
-    const code = 'NACOS-' + event.id.slice(-4).toUpperCase() + '-' + Math.random().toString(36).slice(2, 6).toUpperCase();
-    saveRsvp(voterId, event.id, code);
-    setMyRsvps(prev => ({ ...prev, [event.id]: { ticketCode: code, rsvpedAt: Date.now() } }));
-    setTicket({ event, code });
+  async function rsvp(event: NacosEvent) {
+    setRsvping(event.id);
+    try {
+      const { data } = await api.post(`/events/${event.id}/rsvp`);
+      setMyRsvps(prev => ({ ...prev, [event.id]: { ticketCode: data.ticketCode, rsvpAt: data.rsvpAt } }));
+      setEvents(prev => prev.map(e => e.id === event.id ? { ...e, _count: { rsvps: e._count.rsvps + 1 } } : e));
+      setTicket({ event, code: data.ticketCode });
+    } catch (err: any) {
+      // already rsvp'd, event full, etc — silently ignore or could show a toast
+    } finally {
+      setRsvping(null);
+    }
   }
 
   if (loading) return (
@@ -83,9 +72,9 @@ export default function RsvpTickets() {
     </div>
   );
 
-  const today = new Date(); today.setHours(0, 0, 0, 0);
-  const upcoming = events.filter(e => new Date(e.date + 'T12:00:00') >= today).sort((a, b) => a.date.localeCompare(b.date));
-  const past = events.filter(e => new Date(e.date + 'T12:00:00') < today).sort((a, b) => b.date.localeCompare(a.date));
+  const now = new Date();
+  const upcoming = events.filter(e => new Date(e.date) >= now).sort((a, b) => a.date.localeCompare(b.date));
+  const past = events.filter(e => new Date(e.date) < now).sort((a, b) => b.date.localeCompare(a.date));
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
@@ -94,7 +83,6 @@ export default function RsvpTickets() {
         <p className="text-sm text-gray-400 mt-0.5">RSVP to events and get your digital ticket</p>
       </div>
 
-      {/* Ticket modal */}
       {ticket && (
         <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4"
           onClick={() => setTicket(null)}>
@@ -111,8 +99,8 @@ export default function RsvpTickets() {
                 {ticket.event.title}
               </p>
               <p className="text-gray-400 text-xs mt-2">
-                {new Date(ticket.event.date + 'T12:00:00').toLocaleDateString('en-NG', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-                {' · '}{ticket.event.time}
+                {new Date(ticket.event.date).toLocaleDateString('en-NG', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                {' · '}{new Date(ticket.event.date).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
               </p>
             </div>
             <div className="px-6 py-5">
@@ -122,7 +110,7 @@ export default function RsvpTickets() {
                 style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{ticket.code}</p>
               <div className="mt-4 bg-gray-50 rounded-xl p-3">
                 <div className="flex justify-between text-xs text-gray-500">
-                  <span>Venue</span><span className="font-semibold text-gray-700">{ticket.event.venue}</span>
+                  <span>Venue</span><span className="font-semibold text-gray-700">{ticket.event.location || 'TBA'}</span>
                 </div>
                 <div className="flex justify-between text-xs text-gray-500 mt-1.5">
                   <span>Price</span>
@@ -141,10 +129,6 @@ export default function RsvpTickets() {
 
       {events.length === 0 ? (
         <div className="bg-white rounded-2xl border border-gray-100 p-14 text-center shadow-[0_2px_4px_rgba(0,0,0,0.04)]">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}
-            className="w-12 h-12 text-gray-200 mx-auto mb-4">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-5.25h5.25M7.5 15h3M3.375 5.25c-.621 0-1.125.504-1.125 1.125v3.026a2.999 2.999 0 010 5.198v3.026c0 .621.504 1.125 1.125 1.125h17.25c.621 0 1.125-.504 1.125-1.125v-3.026a2.999 2.999 0 010-5.198V6.375c0-.621-.504-1.125-1.125-1.125H3.375z" />
-          </svg>
           <p className="text-sm font-semibold text-gray-400" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>No events available yet</p>
           <p className="text-xs text-gray-300 mt-1">NACOS events will appear here when published by the executives</p>
         </div>
@@ -156,13 +140,16 @@ export default function RsvpTickets() {
                 style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Upcoming · {upcoming.length}</p>
               {upcoming.map(ev => {
                 const myTicket = myRsvps[ev.id];
-                const count = getRsvpCount(ev.id);
-                const isFull = ev.spots > 0 && count >= ev.spots;
+                const isFull = ev.spots > 0 && ev._count.rsvps >= ev.spots;
                 const catStyle = CAT_STYLE[ev.category] ?? CAT_STYLE.Other;
-                const d = new Date(ev.date + 'T12:00:00');
+                const d = new Date(ev.date);
                 return (
                   <div key={ev.id} className="bg-white rounded-2xl border border-gray-100 p-5
                     shadow-[0_2px_8px_rgba(0,0,0,0.06)]">
+                    {ev.imageUrl && (
+                      <img src={`${baseUrl}${ev.imageUrl}`} alt={ev.title}
+                        className="w-full h-32 object-cover rounded-xl mb-4" />
+                    )}
                     <div className="flex items-start gap-4">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap mb-1">
@@ -176,11 +163,11 @@ export default function RsvpTickets() {
                         </div>
                         <p className="text-sm font-black text-gray-900" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{ev.title}</p>
                         <p className="text-xs text-gray-400 mt-0.5">
-                          {d.toLocaleDateString('en-NG', { weekday: 'short', day: 'numeric', month: 'long' })} · {ev.time} · {ev.venue}
+                          {d.toLocaleDateString('en-NG', { weekday: 'short', day: 'numeric', month: 'long' })} · {d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })} · {ev.location || 'TBA'}
                         </p>
-                        {ev.desc && <p className="text-xs text-gray-500 mt-1.5 leading-relaxed">{ev.desc}</p>}
+                        {ev.description && <p className="text-xs text-gray-500 mt-1.5 leading-relaxed">{ev.description}</p>}
                         {ev.spots > 0 && !myTicket && (
-                          <p className="text-xs text-gray-400 mt-1.5">{Math.max(ev.spots - count, 0)} spot{Math.max(ev.spots - count, 0) !== 1 ? 's' : ''} left</p>
+                          <p className="text-xs text-gray-400 mt-1.5">{Math.max(ev.spots - ev._count.rsvps, 0)} spot{Math.max(ev.spots - ev._count.rsvps, 0) !== 1 ? 's' : ''} left</p>
                         )}
                       </div>
                     </div>
@@ -190,17 +177,14 @@ export default function RsvpTickets() {
                         <button onClick={() => setTicket({ event: ev, code: myTicket.ticketCode })}
                           className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-900 text-white text-xs font-bold hover:bg-gray-800 transition"
                           style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                          <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
-                            <path fillRule="evenodd" d="M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-5.25h5.25M7.5 15h3M3.375 5.25c-.621 0-1.125.504-1.125 1.125v3.026a2.999 2.999 0 010 5.198v3.026c0 .621.504 1.125 1.125 1.125h17.25c.621 0 1.125-.504 1.125-1.125v-3.026a2.999 2.999 0 010-5.198V6.375c0-.621-.504-1.125-1.125-1.125H3.375z" clipRule="evenodd" />
-                          </svg>
-                          View My Ticket · {myTicket.ticketCode}
+                          View My Ticket · {myTicket.ticketCode.slice(0, 8).toUpperCase()}
                         </button>
                       ) : (
-                        <button onClick={() => rsvp(ev)} disabled={isFull}
+                        <button onClick={() => rsvp(ev)} disabled={isFull || rsvping === ev.id}
                           className="px-5 py-2 rounded-xl text-sm font-bold text-white bg-gray-900 hover:bg-gray-800
                             disabled:opacity-40 disabled:cursor-not-allowed transition"
                           style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                          {isFull ? 'Fully Booked' : 'RSVP & Get Ticket'}
+                          {rsvping === ev.id ? 'RSVPing...' : isFull ? 'Fully Booked' : 'RSVP & Get Ticket'}
                         </button>
                       )}
                     </div>
@@ -219,7 +203,7 @@ export default function RsvpTickets() {
                   shadow-[0_2px_4px_rgba(0,0,0,0.04)]">
                   <p className="text-sm font-semibold text-gray-700">{ev.title}</p>
                   <p className="text-xs text-gray-400 mt-0.5">
-                    {new Date(ev.date + 'T12:00:00').toLocaleDateString('en-NG', { day: 'numeric', month: 'long', year: 'numeric' })} · {ev.venue}
+                    {new Date(ev.date).toLocaleDateString('en-NG', { day: 'numeric', month: 'long', year: 'numeric' })} · {ev.location || 'TBA'}
                   </p>
                 </div>
               ))}

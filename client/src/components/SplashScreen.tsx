@@ -16,7 +16,7 @@ export default function SplashScreen({ onComplete }: { onComplete: () => void })
       <div className="flex items-center gap-5 animate-fade-in">
         <Image src="/1690802623935.jpeg" alt="NACOS" width={75} height={75} className="object-contain" priority />
         <Image src="/images (32).jpeg" alt="Bowen University" width={75} height={75} className="object-contain" priority />
-        <h1 style={{ fontFamily: "'Ranade', sans-serif" }} className="text-2xl font-black tracking-wide text-gray-900">
+        <h1 style={{ fontFamily: "'Space Grotesk', sans-serif" }} className="text-2xl font-black tracking-wide text-gray-900">
           NACOS BOWEN
         </h1>
       </div>

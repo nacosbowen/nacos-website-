@@ -1,8 +1,9 @@
 import { Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
+import { asyncHandler } from '../utils/asyncHandler';
 
 // GET /api/users  (admin)
-export const listUsers = async (req: Request, res: Response) => {
+export const listUsers = asyncHandler(async (req: Request, res: Response) => {
   const { level, departmentId, role, search } = req.query;
 
   const users = await prisma.user.findMany({
@@ -37,12 +38,24 @@ export const listUsers = async (req: Request, res: Response) => {
       createdAt: u.createdAt,
     })),
   );
-};
+});
 
 // GET /api/users/:id
-export const getUser = async (req: Request, res: Response) => {
+export const getUser = asyncHandler(async (req: Request, res: Response) => {
   const requesterId = (req as any).userId;
   const targetId = req.params.id === 'me' ? requesterId : req.params.id;
+
+  // Block viewing other users' profiles unless requester is admin
+  if (targetId !== requesterId) {
+    const requester = await prisma.user.findUnique({
+      where: { id: requesterId },
+      include: { roles: { include: { role: true } } },
+    });
+    const isAdmin = requester?.roles.some((ur) => ur.role.name === 'admin');
+    if (!isAdmin) {
+      return res.status(403).json({ message: 'Not authorized to view this profile' });
+    }
+  }
 
   const user = await prisma.user.findUnique({
     where: { id: targetId },
@@ -67,10 +80,10 @@ export const getUser = async (req: Request, res: Response) => {
     courseRepLevel: user.courseRepAssigns[0]?.level ?? null,
     createdAt: user.createdAt,
   });
-};
+});
 
 // PATCH /api/users/:id/roles  (admin)
-export const assignRole = async (req: Request, res: Response) => {
+export const assignRole = asyncHandler(async (req: Request, res: Response) => {
   const { role, action } = req.body; // action: 'add' | 'remove'
 
   if (!role || !['add', 'remove'].includes(action)) {
@@ -99,10 +112,10 @@ export const assignRole = async (req: Request, res: Response) => {
   }
 
   return res.json({ message: `Role ${action === 'add' ? 'assigned' : 'removed'}` });
-};
+});
 
 // GET /api/departments
-export const getDepartments = async (_req: Request, res: Response) => {
+export const getDepartments = asyncHandler(async (_req: Request, res: Response) => {
   const departments = await prisma.department.findMany({ orderBy: { name: 'asc' } });
   return res.json(departments);
-};
+});

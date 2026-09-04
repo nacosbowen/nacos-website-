@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import api from '@/lib/api';
-
+import { useAuth } from '@/context/AuthContext';
 
 type NacosEvent = {
   id: string;
@@ -9,23 +9,28 @@ type NacosEvent = {
   description: string | null;
   date: string;
   location: string | null;
+  imageUrl: string | null;  // ← also add this line to the type
   createdAt: string;
   _count: { rsvps: number };
 };
 
+const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5001';
+
 export default function CalendarEvents() {
+  const { isLoading: authLoading } = useAuth();
   const [events, setEvents] = useState<NacosEvent[]>([]);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [rsvping, setRsvping] = useState<string | null>(null);
   const [myRsvps, setMyRsvps] = useState<Set<string>>(new Set());
 
-  useEffect(() => {
+ useEffect(() => {
+    if (authLoading) return;
     api.get('/events').then(r => {
       setEvents(r.data);
       setLoading(false);
     }).catch(() => setLoading(false));
-  }, []);
+  }, [authLoading]);
 
   async function handleRsvp(eventId: string) {
     setRsvping(eventId);
@@ -129,10 +134,14 @@ function EventCard({ event, formatTime, expanded, setExpanded, rsvping, hasRsvp,
   onRsvp: (id: string) => void;
   isPast?: boolean;
 }) {
-  const isExpanded = expanded === event.id;
+   const isExpanded = expanded === event.id;
   return (
     <div className={`bg-white rounded-2xl border p-5 shadow-[0_2px_8px_rgba(0,0,0,0.06)] transition-all
       ${isPast ? 'border-gray-100 opacity-70' : 'border-gray-200'}`}>
+      {event.imageUrl && (
+        <img src={`${baseUrl}${event.imageUrl}`} alt={event.title}
+          className="w-full h-32 object-cover rounded-xl mb-4" />
+      )}
       <div className="flex items-start gap-4">
         <div className="flex-shrink-0 w-12 text-center">
           <p className="text-xl font-black text-gray-900" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>

@@ -1,13 +1,72 @@
 'use client';
+import { useRef, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 
 export default function IdCard() {
   const { user } = useAuth();
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [downloading, setDownloading] = useState(false);
+  const [sharing, setSharing] = useState(false);
 
   const year = new Date().getFullYear();
   const initials = user?.fullName
     ? user.fullName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
     : '??';
+
+  const handleDownload = async () => {
+    if (!cardRef.current || downloading) return;
+    setDownloading(true);
+    try {
+      const canvas = await html2canvas(cardRef.current, { backgroundColor: null, scale: 3 });
+      const imgData = canvas.toDataURL('image/png');
+
+      const pdf = new jsPDF({
+        orientation: 'landscape',
+        unit: 'px',
+        format: [canvas.width, canvas.height],
+      });
+      pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+      pdf.save(`nacos-id-card-${user?.matricNumber ?? 'card'}.pdf`);
+    } catch (err) {
+      console.error('Failed to generate ID card PDF:', err);
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  const handleShare = async () => {
+    if (!cardRef.current || sharing) return;
+    setSharing(true);
+    try {
+      const canvas = await html2canvas(cardRef.current, { backgroundColor: null, scale: 3 });
+      const blob: Blob | null = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
+      if (!blob) throw new Error('Failed to generate image');
+
+      const file = new File([blob], `nacos-id-card.png`, { type: 'image/png' });
+
+      if (navigator.share && navigator.canShare?.({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: 'My NACOS ID Card',
+          text: `${user?.fullName}'s NACOS membership card`,
+        });
+      } else {
+        // Fallback: trigger a download instead, since sharing isn't supported
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'nacos-id-card.png';
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+    } catch (err) {
+      console.error('Failed to share ID card:', err);
+    } finally {
+      setSharing(false);
+    }
+  };
 
   return (
     <div className="max-w-md mx-auto space-y-6">
@@ -20,7 +79,7 @@ export default function IdCard() {
       <div className="relative">
         <div className="absolute top-4 left-4 right-[-8px] bottom-[-8px] bg-gray-300 rounded-3xl" />
         <div className="absolute top-2 left-2 right-[-4px] bottom-[-4px] bg-gray-200 rounded-3xl" />
-        <div className="relative bg-gray-900 rounded-3xl overflow-hidden"
+        <div ref={cardRef} className="relative bg-gray-900 rounded-3xl overflow-hidden"
           style={{ minHeight: 240 }}>
 
           {/* Dot pattern bg */}
@@ -105,22 +164,24 @@ export default function IdCard() {
 
       {/* Actions */}
       <div className="grid grid-cols-2 gap-3">
-        <button className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gray-900 text-white text-sm font-bold
-          hover:bg-gray-800 transition shadow-[0_2px_8px_rgba(0,0,0,0.15)]"
-          style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-          <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
-            <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
-          </svg>
-          Download PDF
-        </button>
-        <button className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-white border border-gray-200 text-gray-700 text-sm font-bold
-          hover:border-gray-300 transition"
-          style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-          <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
-            <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" />
-          </svg>
-          Share Card
-        </button>
+              <button onClick={handleDownload} disabled={downloading}
+        className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gray-900 text-white text-sm font-bold
+          hover:bg-gray-800 transition shadow-[0_2px_8px_rgba(0,0,0,0.15)] disabled:opacity-60"
+        style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+        <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+          <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+        </svg>
+        {downloading ? 'Generating...' : 'Download PDF'}
+      </button>
+      <button onClick={handleShare} disabled={sharing}
+        className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-white border border-gray-200 text-gray-700 text-sm font-bold
+          hover:border-gray-300 transition disabled:opacity-60"
+        style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+        <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+          <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" />
+        </svg>
+        {sharing ? 'Preparing...' : 'Share Card'}
+      </button>
       </div>
 
       <p className="text-xs text-center text-gray-400">

@@ -1,38 +1,26 @@
 'use client';
 import { useState, useEffect } from 'react';
+import { useAuth } from '@/context/AuthContext';
+import api from '@/lib/api';
 
 type DinnerInfo = {
-  title: string; date: string; time: string; venue: string; theme: string;
-  dressCode: string; ticketPrice: string; highlights: string;
-};
-
-const DEFAULT: DinnerInfo = {
-  title: 'NACOS Annual Dinner',
-  date: '',
-  time: '6:00 PM',
-  venue: 'Bowen University Recreation Center',
-  theme: 'Black & Gold',
-  dressCode: 'Black tie / formal. Gold accessories encouraged.',
-  ticketPrice: '5000',
-  highlights: 'Live performances\nAward ceremony\nNetworking\nPhoto booth',
+  title: string; date: string | null; time: string; venue: string; theme: string;
+  dressCode: string; ticketPrice: string; highlights: string; imageUrl: string | null;
 };
 
 export default function DinnerTheme() {
-  const [info, setInfo] = useState<DinnerInfo>({ ...DEFAULT });
+  const { isLoading: authLoading } = useAuth();
+  const [info, setInfo] = useState<DinnerInfo | null>(null);
   const [countdown, setCountdown] = useState({ days: 0, hours: 0, mins: 0, secs: 0, past: false });
-  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem('nacos_dinner');
-      if (stored) setInfo({ ...DEFAULT, ...JSON.parse(stored) });
-    } catch { /* use default */ }
-    setLoaded(true);
-  }, []);
+    if (authLoading) return;
+    api.get('/dinner').then(({ data }) => setInfo(data)).catch(() => {});
+  }, [authLoading]);
 
   useEffect(() => {
-    if (!info.date) return;
-    const target = new Date(info.date + 'T' + (info.time.includes(':') ? info.time.replace(' PM', '').replace(' AM', '') : '18:00') + ':00');
+    if (!info?.date) return;
+    const target = new Date(info.date);
     const tick = () => {
       const diff = target.getTime() - Date.now();
       if (diff <= 0) { setCountdown({ days: 0, hours: 0, mins: 0, secs: 0, past: true }); return; }
@@ -47,9 +35,9 @@ export default function DinnerTheme() {
     tick();
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
-  }, [info.date, info.time]);
+  }, [info?.date]);
 
-  if (!loaded) return null;
+  if (!info) return null;
 
   const highlights = info.highlights.split('\n').filter(Boolean);
   const priceNum = parseFloat(info.ticketPrice) || 0;
@@ -58,22 +46,27 @@ export default function DinnerTheme() {
     <div className="max-w-xl mx-auto space-y-6">
       {/* Hero */}
       <div className="relative rounded-3xl overflow-hidden bg-gray-900 p-8 text-center">
+        {info.imageUrl && (
+          <img src={info.imageUrl} alt="Dinner" className="absolute inset-0 w-full h-full object-cover opacity-30" />
+        )}
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-4 right-8 w-40 h-40 rounded-full border-4 border-yellow-400" />
           <div className="absolute bottom-4 left-8 w-24 h-24 rounded-full border-2 border-yellow-400" />
           <div className="absolute top-1/2 left-1/4 w-16 h-16 rounded-full border border-yellow-400" />
         </div>
-        <p className="text-[10px] font-bold text-yellow-400 tracking-widest uppercase mb-3"
-          style={{ fontFamily: "'Space Grotesk', sans-serif" }}>NACOS Bowen University</p>
-        <h2 className="text-3xl font-black text-white mb-2 leading-tight"
-          style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{info.title}</h2>
-        <p className="text-gray-400 text-sm">{info.theme}</p>
-        {info.date && (
-          <p className="text-yellow-400 font-semibold text-sm mt-2">
-            {new Date(info.date + 'T12:00:00').toLocaleDateString('en-NG', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-            {' · '}{info.time}
-          </p>
-        )}
+        <div className="relative">
+          <p className="text-[10px] font-bold text-yellow-400 tracking-widest uppercase mb-3"
+            style={{ fontFamily: "'Space Grotesk', sans-serif" }}>NACOS Bowen University</p>
+          <h2 className="text-3xl font-black text-white mb-2 leading-tight"
+            style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{info.title}</h2>
+          <p className="text-gray-400 text-sm">{info.theme}</p>
+          {info.date && (
+            <p className="text-yellow-400 font-semibold text-sm mt-2">
+              {new Date(info.date).toLocaleDateString('en-NG', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+              {' · '}{info.time}
+            </p>
+          )}
+        </div>
       </div>
 
       {/* Countdown */}
@@ -93,7 +86,7 @@ export default function DinnerTheme() {
         </div>
       )}
 
-      {/* Details grid */}
+    
       <div className="grid grid-cols-2 gap-3">
         <div className="bg-white rounded-2xl border border-gray-100 px-4 py-4 shadow-[0_2px_4px_rgba(0,0,0,0.04)]">
           <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Venue</p>

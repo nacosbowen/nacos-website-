@@ -1,8 +1,9 @@
 import { Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
+import { asyncHandler } from '../utils/asyncHandler';
 
 // POST /api/suggestions
-export const createSuggestion = async (req: Request, res: Response) => {
+export const createSuggestion = asyncHandler(async (req: Request, res: Response) => {
   const userId = (req as any).userId;
   const { body, anonymous } = req.body;
 
@@ -18,10 +19,10 @@ export const createSuggestion = async (req: Request, res: Response) => {
     },
   });
   return res.status(201).json(suggestion);
-};
+});
 
 // GET /api/suggestions  (exec/admin: all; student: own)
-export const getSuggestions = async (req: Request, res: Response) => {
+export const getSuggestions = asyncHandler(async (req: Request, res: Response) => {
   const userId = (req as any).userId;
 
   const user = await prisma.user.findUnique({
@@ -53,10 +54,10 @@ export const getSuggestions = async (req: Request, res: Response) => {
   }));
 
   return res.json(result);
-};
+});
 
 // PATCH /api/suggestions/:id/status  (exec/admin)
-export const updateSuggestionStatus = async (req: Request, res: Response) => {
+export const updateSuggestionStatus = asyncHandler(async (req: Request, res: Response) => {
   const { status } = req.body;
   const validStatuses = ['pending', 'reviewed', 'resolved'];
 
@@ -69,4 +70,4 @@ export const updateSuggestionStatus = async (req: Request, res: Response) => {
     data: { status },
   });
   return res.json(suggestion);
-};
+});

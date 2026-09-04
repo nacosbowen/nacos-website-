@@ -2,9 +2,10 @@ import { Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { io } from '../index';
 import { NotificationAudience } from '@prisma/client';
+import { asyncHandler } from '../utils/asyncHandler';
 
 // GET /api/notifications
-export const getNotifications = async (req: Request, res: Response) => {
+export const getNotifications = asyncHandler(async (req: Request, res: Response) => {
   const userId = (req as any).userId;
 
   const user = await prisma.user.findUnique({ where: { id: userId } });
@@ -34,10 +35,10 @@ export const getNotifications = async (req: Request, res: Response) => {
   }));
 
   return res.json(result);
-};
+});
 
 // GET /api/notifications/unread-count
-export const getUnreadCount = async (req: Request, res: Response) => {
+export const getUnreadCount = asyncHandler(async (req: Request, res: Response) => {
   const userId = (req as any).userId;
 
   const user = await prisma.user.findUnique({ where: { id: userId } });
@@ -57,10 +58,10 @@ export const getUnreadCount = async (req: Request, res: Response) => {
   });
 
   return res.json({ count: total - read });
-};
+});
 
 // POST /api/notifications  (exec/admin)
-export const createNotification = async (req: Request, res: Response) => {
+export const createNotification = asyncHandler(async (req: Request, res: Response) => {
   const userId = (req as any).userId;
   const { title, body, audience, category } = req.body;
 
@@ -79,17 +80,14 @@ export const createNotification = async (req: Request, res: Response) => {
   });
 
   // Emit real-time to appropriate rooms
-  const targetRoom = audience && audience !== 'all' ? audience : 'level:all';
-  io.to(targetRoom === 'level:all' ? 'level:all' : `level:${audience.replace('level_', '')}`).emit(
-    'notification:new',
-    notification,
-  );
+const targetRoom = audience && audience !== 'all' ? audience : 'level_all';
+io.to(targetRoom).emit('notification:new', notification);
 
   return res.status(201).json(notification);
-};
+});
 
 // PATCH /api/notifications/:id/read
-export const markRead = async (req: Request, res: Response) => {
+export const markRead = asyncHandler(async (req: Request, res: Response) => {
   const userId = (req as any).userId;
   const notificationId = req.params.id;
 
@@ -100,10 +98,10 @@ export const markRead = async (req: Request, res: Response) => {
   });
 
   return res.json({ message: 'Marked as read' });
-};
+});
 
 // PATCH /api/notifications/read-all
-export const markAllRead = async (req: Request, res: Response) => {
+export const markAllRead = asyncHandler(async (req: Request, res: Response) => {
   const userId = (req as any).userId;
 
   const user = await prisma.user.findUnique({ where: { id: userId } });
@@ -127,4 +125,4 @@ export const markAllRead = async (req: Request, res: Response) => {
   }
 
   return res.json({ marked: unread.length });
-};
+});

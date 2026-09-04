@@ -10,10 +10,21 @@ export default function SuggestionBox() {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [touched, setTouched] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!category || !text.trim()) return;
+    setTouched(true);
+
+    if (!category) {
+      setError('Please select a category');
+      return;
+    }
+    if (text.trim().length < 10) {
+      setError('Your suggestion must be at least 10 characters');
+      return;
+    }
+
     setLoading(true);
     setError('');
     try {
@@ -32,8 +43,8 @@ export default function SuggestionBox() {
     setText('');
     setSubmitted(false);
     setError('');
+    setTouched(false);
   }
-
   return (
     <div className="max-w-xl mx-auto space-y-6">
       <div>
@@ -74,7 +85,7 @@ export default function SuggestionBox() {
                 style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
                 Category
               </label>
-              <div className="flex flex-wrap gap-2">
+              <div className={`flex flex-wrap gap-2 p-1 rounded-xl ${touched && !category ? 'ring-2 ring-red-200' : ''}`}>
                 {CATEGORIES.map((cat) => (
                   <button key={cat} type="button" onClick={() => setCategory(cat)}
                     className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all
@@ -95,13 +106,14 @@ export default function SuggestionBox() {
                 Your suggestion
               </label>
               <textarea
-                value={text}
-                onChange={e => setText(e.target.value)}
-                rows={5}
-                placeholder="Share your thoughts, ideas, or concerns with the NACOS executives..."
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-sm text-gray-900
-                  placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent
-                  transition-all duration-200 resize-none"
+                  value={text}
+                  onChange={e => setText(e.target.value)}
+                  rows={5}
+                  placeholder="Share your thoughts, ideas, or concerns with the NACOS executives..."
+                  className={`w-full px-4 py-3 rounded-xl border bg-gray-50 text-sm text-gray-900
+                    placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent
+                    transition-all duration-200 resize-none
+                    ${touched && text.trim().length < 10 ? 'border-red-300' : 'border-gray-200'}`}
               />
               <p className="text-xs text-gray-400 mt-1">{text.length} characters · min 10</p>
             </div>
@@ -114,7 +126,7 @@ export default function SuggestionBox() {
 
             <div className="flex items-center gap-3 pt-1">
               <button type="submit"
-                disabled={!category || text.trim().length < 10 || loading}
+                disabled={loading}
                 className="px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-gray-900 hover:bg-gray-800
                   disabled:opacity-40 disabled:cursor-not-allowed transition"
                 style={{ fontFamily: "'Space Grotesk', sans-serif" }}>

@@ -17,6 +17,9 @@ import pastQuestionsRoutes from './routes/past-questions.routes';
 import notificationsRoutes from './routes/notifications.routes';
 import usersRoutes from './routes/users.routes';
 import adminRoutes from './routes/admin.routes';
+import dinnerRoutes from './routes/dinner.routes';
+import examRoutes from './routes/exam.routes';
+import archiveRoutes from './routes/archive.routes';
 
 const app = express();
 const server = http.createServer(app);
@@ -28,13 +31,16 @@ export const io = new SocketServer(server, {
   },
 });
 
-app.use(helmet());
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+}));
 app.use(
   cors({
     origin: process.env.CLIENT_URL || 'http://localhost:3000',
     credentials: true,
   }),
 );
+
 app.use(express.json());
 app.use(cookieParser());
 
@@ -43,12 +49,18 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: process.env.NODE_ENV === 'production' ? 20 : 200,
+  max: 10,
   message: { message: 'Too many attempts, try again later' },
 });
 
+const refreshLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  message: { message: 'Too many requests, try again later' },
+});
+
 // Routes
-app.use('/api/auth', authLimiter, authRoutes);
+app.use('/api/auth', authRoutes);
 app.use('/api/events', eventsRoutes);
 app.use('/api/suggestions', suggestionsRoutes);
 app.use('/api/polls', pollsRoutes);
@@ -57,6 +69,9 @@ app.use('/api/past-questions', pastQuestionsRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/dinner', dinnerRoutes);
+app.use('/api/exams', examRoutes);
+app.use('/api/archive', archiveRoutes);
 
 // Socket.io: join level rooms on connect
 io.on('connection', (socket) => {

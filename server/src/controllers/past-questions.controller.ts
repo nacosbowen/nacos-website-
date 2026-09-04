@@ -2,25 +2,27 @@ import { Request, Response } from 'express';
 import path from 'path';
 import fs from 'fs';
 import { prisma } from '../lib/prisma';
+import { asyncHandler } from '../utils/asyncHandler';
 
 // GET /api/past-questions?level=&courseCode=&departmentId=
-export const getPastQuestions = async (req: Request, res: Response) => {
-  const { level, courseCode, departmentId } = req.query;
+export const getPastQuestions = asyncHandler(async (req: Request, res: Response) => {
+const { level, courseCode, departmentId, year } = req.query;
 
   const questions = await prisma.pastQuestion.findMany({
     where: {
       ...(level && { level: Number(level) }),
       ...(courseCode && { courseCode: (courseCode as string).toUpperCase() }),
       ...(departmentId && { departmentId: Number(departmentId) }),
+      ...(year && { year: Number(year) }),
     },
     orderBy: [{ courseCode: 'asc' }, { year: 'desc' }],
   });
 
   return res.json(questions);
-};
+});
 
 // POST /api/past-questions  (multer handles file)
-export const uploadPastQuestion = async (req: Request, res: Response) => {
+export const uploadPastQuestion = asyncHandler(async (req: Request, res: Response) => {
   const userId = (req as any).userId;
   const file = (req as any).file as Express.Multer.File | undefined;
 
@@ -49,10 +51,10 @@ export const uploadPastQuestion = async (req: Request, res: Response) => {
   });
 
   return res.status(201).json(question);
-};
+});
 
 // DELETE /api/past-questions/:id  (admin / uploader)
-export const deletePastQuestion = async (req: Request, res: Response) => {
+export const deletePastQuestion = asyncHandler(async (req: Request, res: Response) => {
   const userId = (req as any).userId;
 
   const question = await prisma.pastQuestion.findUnique({ where: { id: req.params.id } });
@@ -75,4 +77,4 @@ export const deletePastQuestion = async (req: Request, res: Response) => {
 
   await prisma.pastQuestion.delete({ where: { id: req.params.id } });
   return res.json({ message: 'Deleted' });
-};
+});

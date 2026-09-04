@@ -1,16 +1,18 @@
 'use client';
 import { useState, useEffect } from 'react';
+import api from '@/lib/api';
 
 const CATS = ['Events', 'Academic', 'Sports', 'Tech', 'Cultural', 'Other'];
 const TYPES = ['Gallery', 'Document', 'Video', 'Report', 'Newsletter', 'Other'];
-const EMPTY = { title: '', type: 'Document', year: new Date().getFullYear().toString(), category: 'Events', desc: '' };
+const EMPTY = { title: '', type: 'Document', year: new Date().getFullYear().toString(), category: 'Events', description: '' };
 
-type ArchiveItem = { id: string; title: string; type: string; year: string; category: string; desc: string; addedAt: number };
+const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5001';
 
-function load(): ArchiveItem[] {
-  try { return JSON.parse(localStorage.getItem('nacos_archive') ?? '[]'); } catch { return []; }
-}
-function save(data: ArchiveItem[]) { localStorage.setItem('nacos_archive', JSON.stringify(data)); }
+type ArchiveImage = { id: string; imageUrl: string };
+type ArchiveItem = {
+  id: string; title: string; type: string; year: string; category: string;
+  description: string | null; createdAt: string; images: ArchiveImage[];
+};
 
 const TYPE_ICONS: Record<string, string> = {
   Gallery: '🖼', Document: '📄', Video: '🎬', Report: '📊', Newsletter: '📰', Other: '📁',
@@ -22,20 +24,69 @@ export default function ExecutiveArchive() {
   const [showForm, setShowForm] = useState(false);
   const [toast, setToast] = useState('');
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [uploadingFor, setUploadingFor] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  useEffect(() => { setItems(load()); }, []);
-
-  function persist(data: ArchiveItem[]) { setItems(data); save(data); }
-
-  function addItem() {
-    if (!form.title.trim()) return;
-    persist([{ ...form, id: Date.now().toString(), addedAt: Date.now() }, ...items]);
-    setForm({ ...EMPTY });
-    setShowForm(false);
-    flash('Added to NACOS Archive ✓');
-  }
+  useEffect(() => {
+    api.get('/archive').then(r => setItems(r.data)).catch(() => {});
+  }, []);
 
   function flash(msg: string) { setToast(msg); setTimeout(() => setToast(''), 3000); }
+
+  async function addItem() {
+    if (!form.title.trim() || creating) return;
+    setCreating(true);
+    try {
+      const { data } = await api.post('/archive', form);
+      setItems(prev => [data, ...prev]);
+      setForm({ ...EMPTY });
+      setShowForm(false);
+      flash('Added to NACOS Archive ✓');
+    } catch (err: any) {
+      flash(err?.response?.data?.message || 'Failed to add item');
+    } finally {
+      setCreating(false);
+    }
+  }
+
+  async function handleDelete(id: string) {
+    try {
+      await api.delete(`/archive/${id}`);
+      setItems(prev => prev.filter(x => x.id !== id));
+      setDeleteId(null);
+      flash('Deleted');
+    } catch {
+      flash('Failed to delete');
+    }
+  }
+
+  async function handleImagesUpload(itemId: string, files: FileList) {
+    setUploadingFor(itemId);
+    try {
+      const fd = new FormData();
+      Array.from(files).forEach(f => fd.append('files', f));
+      const { data } = await api.post(`/archive/${itemId}/images`, fd, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      setItems(prev => prev.map(i => i.id === itemId ? { ...i, images: [...i.images, ...data] } : i));
+      flash('Images added ✓');
+    } catch (err: any) {
+      flash(err?.response?.data?.message || 'Failed to upload images');
+    } finally {
+      setUploadingFor(null);
+    }
+  }
+
+  async function handleImageDelete(itemId: string, imageId: string) {
+    try {
+      await api.delete(`/archive/${itemId}/images/${imageId}`);
+      setItems(prev => prev.map(i => i.id === itemId
+        ? { ...i, images: i.images.filter(img => img.id !== imageId) } : i));
+    } catch {
+      flash('Failed to delete image');
+    }
+  }
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
@@ -96,16 +147,18 @@ export default function ExecutiveArchive() {
             </div>
             <div className="col-span-2">
               <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">Description (optional)</label>
-              <textarea value={form.desc} onChange={e => setForm(f => ({ ...f, desc: e.target.value }))}
+              <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
                 rows={2} placeholder="Brief description..."
                 className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-gray-900" />
             </div>
           </div>
           <div className="flex gap-2 pt-1">
-            <button onClick={addItem} disabled={!form.title.trim()}
+            <button onClick={addItem} disabled={!form.title.trim() || creating}
               className="px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-gray-900 hover:bg-gray-800
                 disabled:opacity-40 disabled:cursor-not-allowed transition"
-              style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Add to Archive</button>
+              style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+              {creating ? 'Adding...' : 'Add to Archive'}
+            </button>
             <button onClick={() => { setShowForm(false); setForm({ ...EMPTY }); }}
               className="px-5 py-2.5 rounded-xl text-sm font-bold text-gray-500 hover:bg-gray-100 transition"
               style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Cancel</button>
@@ -115,48 +168,86 @@ export default function ExecutiveArchive() {
 
       {items.length === 0 ? (
         <div className="bg-white rounded-2xl border border-gray-100 p-14 text-center shadow-[0_2px_4px_rgba(0,0,0,0.04)]">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}
-            className="w-12 h-12 text-gray-200 mx-auto mb-4">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
-          </svg>
           <p className="text-sm font-semibold text-gray-400" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Archive is empty</p>
           <p className="text-xs text-gray-300 mt-1">Add historical records, photos, and documents</p>
         </div>
       ) : (
         <div className="space-y-3">
-          {items.map(item => (
-            <div key={item.id} className="bg-white rounded-2xl border border-gray-100 p-4 flex items-start gap-4
-              shadow-[0_2px_4px_rgba(0,0,0,0.04)]">
-              <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center flex-shrink-0 text-lg">
-                {TYPE_ICONS[item.type] ?? '📁'}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap mb-0.5">
-                  <span className="text-xs font-bold text-gray-600 bg-gray-100 px-2 py-0.5 rounded-full">{item.year}</span>
-                  <span className="text-xs font-bold text-gray-500 bg-gray-50 border border-gray-200 px-2 py-0.5 rounded-full">{item.category}</span>
-                  <span className="text-xs text-gray-400">{item.type}</span>
+          {items.map(item => {
+            const isExpanded = expandedId === item.id;
+            return (
+              <div key={item.id} className="bg-white rounded-2xl border border-gray-100 p-4
+                shadow-[0_2px_4px_rgba(0,0,0,0.04)]">
+                <div className="flex items-start gap-4">
+                  <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center flex-shrink-0 text-lg">
+                    {TYPE_ICONS[item.type] ?? '📁'}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                      <span className="text-xs font-bold text-gray-600 bg-gray-100 px-2 py-0.5 rounded-full">{item.year}</span>
+                      <span className="text-xs font-bold text-gray-500 bg-gray-50 border border-gray-200 px-2 py-0.5 rounded-full">{item.category}</span>
+                      <span className="text-xs text-gray-400">{item.type}</span>
+                      {item.images.length > 0 && (
+                        <span className="text-xs text-gray-400">{item.images.length} image{item.images.length !== 1 ? 's' : ''}</span>
+                      )}
+                    </div>
+                    <p className="text-sm font-semibold text-gray-800">{item.title}</p>
+                    {item.description && <p className="text-xs text-gray-400 mt-0.5 line-clamp-2">{item.description}</p>}
+                    <button onClick={() => setExpandedId(isExpanded ? null : item.id)}
+                      className="text-xs text-gray-400 hover:text-gray-600 mt-1.5">
+                      {isExpanded ? 'Hide images ↑' : 'Manage images ↓'}
+                    </button>
+                  </div>
+                  {deleteId === item.id ? (
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <p className="text-xs text-gray-500">Remove?</p>
+                      <button onClick={() => handleDelete(item.id)}
+                        className="px-2.5 py-1 rounded-lg bg-red-600 text-white text-xs font-bold">Yes</button>
+                      <button onClick={() => setDeleteId(null)}
+                        className="px-2.5 py-1 rounded-lg bg-gray-100 text-gray-600 text-xs font-bold">No</button>
+                    </div>
+                  ) : (
+                    <button onClick={() => setDeleteId(item.id)}
+                      className="p-1.5 rounded-lg text-gray-300 hover:text-red-400 hover:bg-red-50 transition flex-shrink-0">
+                      <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                        <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                      </svg>
+                    </button>
+                  )}
                 </div>
-                <p className="text-sm font-semibold text-gray-800">{item.title}</p>
-                {item.desc && <p className="text-xs text-gray-400 mt-0.5 line-clamp-2">{item.desc}</p>}
+
+                {isExpanded && (
+                  <div className="mt-4 pt-4 border-t border-gray-100">
+                    {item.images.length > 0 && (
+                      <div className="grid grid-cols-4 gap-2 mb-3">
+                        {item.images.map(img => (
+                          <div key={img.id} className="relative group">
+                            <img src={`${baseUrl}${img.imageUrl}`} alt=""
+                              className="w-full h-20 object-cover rounded-lg" />
+                            <button onClick={() => handleImageDelete(item.id, img.id)}
+                              className="absolute top-1 right-1 w-5 h-5 bg-black/60 text-white rounded-full text-xs
+                                opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                              ×
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <label className="text-xs text-gray-400 cursor-pointer hover:text-gray-600">
+                      {uploadingFor === item.id ? 'Uploading...' : '+ Add images'}
+                      <input type="file" accept="image/*" multiple className="hidden"
+                        disabled={uploadingFor === item.id}
+                        onChange={e => {
+                          if (e.target.files && e.target.files.length > 0) {
+                            handleImagesUpload(item.id, e.target.files);
+                          }
+                        }} />
+                    </label>
+                  </div>
+                )}
               </div>
-              {deleteId === item.id ? (
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <p className="text-xs text-gray-500">Remove?</p>
-                  <button onClick={() => { persist(items.filter(x => x.id !== item.id)); setDeleteId(null); }}
-                    className="px-2.5 py-1 rounded-lg bg-red-600 text-white text-xs font-bold">Yes</button>
-                  <button onClick={() => setDeleteId(null)}
-                    className="px-2.5 py-1 rounded-lg bg-gray-100 text-gray-600 text-xs font-bold">No</button>
-                </div>
-              ) : (
-                <button onClick={() => setDeleteId(item.id)}
-                  className="p-1.5 rounded-lg text-gray-300 hover:text-red-400 hover:bg-red-50 transition flex-shrink-0">
-                  <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
-                    <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
-                  </svg>
-                </button>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

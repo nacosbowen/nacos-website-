@@ -63,7 +63,7 @@ export default function LoginPage() {
               <Image src="/images (32).jpeg" alt="Bowen" width={44} height={44}
                 className="rounded-full object-cover border border-gray-100 shadow-sm" />
               <span className="text-xl font-black text-gray-900 tracking-tight"
-                style={{ fontFamily: 'Ranade, sans-serif' }}>
+                style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
                 NACOS BOWEN
               </span>
             </div>

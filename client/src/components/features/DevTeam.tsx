@@ -19,19 +19,36 @@ const PROJECTS = [
 ];
 
 export default function DevTeam() {
-  const [form, setForm] = useState({ name: '', dept: '', level: '', role: ROLES[0], skills: '', reason: '' });
+  const [form, setForm] = useState({ name: '', email: '', dept: '', level: '', role: '', skills: '', portfolio: '', reason: '' });
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
 
   function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!form.name || !form.dept || !form.level || !form.reason) return;
-    try {
-      const existing = JSON.parse(localStorage.getItem('nacos_dev_applications') ?? '[]');
-      const app = { id: Date.now().toString(), name: form.name, dept: form.dept, level: form.level, role: form.role, skills: form.skills, motivation: form.reason, submittedAt: Date.now(), status: 'pending' };
-      localStorage.setItem('nacos_dev_applications', JSON.stringify([...existing, app]));
-    } catch { /* ignore */ }
-    setSubmitted(true);
+  e.preventDefault();
+  const newErrors: Record<string, string> = {};
+  if (!form.name.trim()) newErrors.name = 'Full name is required';
+  if (!form.email.trim()) newErrors.email = 'Email is required';
+  else if (!/^\S+@\S+\.\S+$/.test(form.email)) newErrors.email = 'Please enter a valid email';
+  if (!form.dept.trim()) newErrors.dept = 'Department is required';
+  if (!form.level) newErrors.level = 'Please select your level';
+  if (!form.role) newErrors.role = 'Please select a role';
+  if (!form.skills.trim()) newErrors.skills = 'Please list at least one skill';
+  if (!form.portfolio.trim()) newErrors.portfolio = 'GitHub or portfolio link is required';
+  if (!form.reason.trim()) newErrors.reason = 'Please tell us why you want to join';
+
+  if (Object.keys(newErrors).length > 0) {
+    setErrors(newErrors);
+    return;
   }
+  setErrors({});
+
+  try {
+    const existing = JSON.parse(localStorage.getItem('nacos_dev_applications') ?? '[]');
+    const app = { id: Date.now().toString(), name: form.name, email: form.email, dept: form.dept, level: form.level, role: form.role, skills: form.skills, portfolio: form.portfolio, motivation: form.reason, submittedAt: Date.now(), status: 'pending' };
+    localStorage.setItem('nacos_dev_applications', JSON.stringify([...existing, app]));
+  } catch { /* ignore */ }
+  setSubmitted(true);
+}
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
@@ -123,62 +140,84 @@ export default function DevTeam() {
             <p className="text-xs text-gray-400 mt-1">We'll review your application and reach out via email.</p>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
-              {[
-                { key: 'name', label: 'Full Name', placeholder: 'Your full name' },
-                { key: 'dept', label: 'Department', placeholder: 'e.g. Computer Science' },
-              ].map(f => (
-                <div key={f.key}>
-                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block"
-                    style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{f.label}</label>
-                  <input value={form[f.key as keyof typeof form]}
-                    onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))}
-                    placeholder={f.placeholder}
-                    className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm
-                      focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent" />
-                </div>
-              ))}
-              <div>
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block"
-                  style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Level</label>
-                <select value={form.level} onChange={e => setForm(p => ({ ...p, level: e.target.value }))}
-                  className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900">
-                  <option value="">Select level</option>
-                  {['100L', '200L', '300L', '400L'].map(l => <option key={l}>{l}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block"
-                  style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Role Applying For</label>
-                <select value={form.role} onChange={e => setForm(p => ({ ...p, role: e.target.value }))}
-                  className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900">
-                  {ROLES.map(r => <option key={r}>{r}</option>)}
-                </select>
-              </div>
-              <div className="col-span-2">
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block"
-                  style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Skills</label>
-                <input value={form.skills} onChange={e => setForm(p => ({ ...p, skills: e.target.value }))}
-                  placeholder="e.g. React, Python, Figma"
-                  className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm
-                    focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent" />
-              </div>
-            </div>
-            <div>
-              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block"
-                style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Why do you want to join?</label>
-              <textarea value={form.reason} onChange={e => setForm(p => ({ ...p, reason: e.target.value }))}
-                rows={3} placeholder="Tell us why you're passionate about joining the NACOS Dev Team..."
-                className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm resize-none
-                  focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent" />
-            </div>
-            <button type="submit"
-              className="px-6 py-2.5 rounded-xl bg-gray-900 text-white text-sm font-bold hover:bg-gray-800 transition"
-              style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-              Submit Application
-            </button>
-          </form>
+        <form onSubmit={handleSubmit} className="space-y-4">
+ <div className="grid grid-cols-2 gap-3">
+  {[
+    { key: 'name', label: 'Full Name', placeholder: 'Your full name' },
+    { key: 'email', label: 'Email Address', placeholder: 'you@example.com' },
+    { key: 'dept', label: 'Department', placeholder: 'e.g. Computer Science' },
+  ].map(f => (
+    <div key={f.key}>
+      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block"
+        style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{f.label}</label>
+      <input value={form[f.key as keyof typeof form]}
+        onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))}
+        placeholder={f.placeholder}
+        className={`w-full px-3 py-2.5 rounded-xl border bg-gray-50 text-sm
+          focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent
+          ${errors[f.key] ? 'border-red-300' : 'border-gray-200'}`} />
+      {errors[f.key] && <p className="text-xs text-red-500 mt-1">{errors[f.key]}</p>}
+    </div>
+  ))}
+    <div>
+      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block"
+        style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Level</label>
+      <select value={form.level} onChange={e => setForm(p => ({ ...p, level: e.target.value }))}
+        className={`w-full px-3 py-2.5 rounded-xl border bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900
+          ${errors.level ? 'border-red-300' : 'border-gray-200'}`}>
+        <option value="">Select level</option>
+        {['100L', '200L', '300L', '400L'].map(l => <option key={l}>{l}</option>)}
+      </select>
+      {errors.level && <p className="text-xs text-red-500 mt-1">{errors.level}</p>}
+    </div>
+ <div>
+  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block"
+    style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Role Applying For</label>
+  <select value={form.role} onChange={e => setForm(p => ({ ...p, role: e.target.value }))}
+    className={`w-full px-3 py-2.5 rounded-xl border bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900
+      ${errors.role ? 'border-red-300' : 'border-gray-200'}`}>
+    <option value="">Select role</option>
+    {ROLES.map(r => <option key={r}>{r}</option>)}
+  </select>
+  {errors.role && <p className="text-xs text-red-500 mt-1">{errors.role}</p>}
+</div>
+<div>
+  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block"
+    style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Skills</label>
+  <input value={form.skills} onChange={e => setForm(p => ({ ...p, skills: e.target.value }))}
+    placeholder="e.g. React, Python, Figma"
+    className={`w-full px-3 py-2.5 rounded-xl border bg-gray-50 text-sm
+      focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent
+      ${errors.skills ? 'border-red-300' : 'border-gray-200'}`} />
+  {errors.skills && <p className="text-xs text-red-500 mt-1">{errors.skills}</p>}
+</div>
+<div>
+  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block"
+    style={{ fontFamily: "'Space Grotesk', sans-serif" }}>GitHub / Portfolio Link</label>
+  <input value={form.portfolio} onChange={e => setForm(p => ({ ...p, portfolio: e.target.value }))}
+    placeholder="https://github.com/yourname"
+    className={`w-full px-3 py-2.5 rounded-xl border bg-gray-50 text-sm
+      focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent
+      ${errors.portfolio ? 'border-red-300' : 'border-gray-200'}`} />
+  {errors.portfolio && <p className="text-xs text-red-500 mt-1">{errors.portfolio}</p>}
+</div>
+  </div>
+  <div>
+    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block"
+      style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Why do you want to join?</label>
+    <textarea value={form.reason} onChange={e => setForm(p => ({ ...p, reason: e.target.value }))}
+      rows={3} placeholder="Tell us why you're passionate about joining the NACOS Dev Team..."
+      className={`w-full px-3 py-2.5 rounded-xl border bg-gray-50 text-sm resize-none
+        focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent
+        ${errors.reason ? 'border-red-300' : 'border-gray-200'}`} />
+    {errors.reason && <p className="text-xs text-red-500 mt-1">{errors.reason}</p>}
+  </div>
+  <button type="submit"
+    className="px-6 py-2.5 rounded-xl bg-gray-900 text-white text-sm font-bold hover:bg-gray-800 transition"
+    style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+    Submit Application
+  </button>
+</form>
         )}
       </div>
     </div>

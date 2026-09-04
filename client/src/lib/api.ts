@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { getToken, setToken } from './token';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api';
 
 const api = axios.create({ baseURL: API_URL, withCredentials: true });
 
@@ -36,12 +36,11 @@ api.interceptors.response.use(
         processQueue(null, data.accessToken);
         original.headers.Authorization = `Bearer ${data.accessToken}`;
         return api(original);
-      } catch (err) {
-        processQueue(err, null);
-        setToken(null);
-        if (typeof window !== 'undefined') window.location.href = '/login';
-        return Promise.reject(err);
-      } finally { isRefreshing = false; }
+} catch (err) {
+  processQueue(err, null);
+  setToken(null);
+  return Promise.reject(err);
+} finally { isRefreshing = false; }
     }
     return Promise.reject(error);
   }
