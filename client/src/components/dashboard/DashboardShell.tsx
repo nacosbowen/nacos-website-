@@ -160,7 +160,7 @@ export default function DashboardShell({
         <div className="flex items-center gap-2.5 px-5 py-5 border-b border-white/[0.06]">
           <Image src="/1690802623935.jpeg" alt="NACOS" width={32} height={32}
             className="rounded-full object-cover border border-white/20 flex-shrink-0" />
-          <Image src="/images (32).jpeg" alt="Bowen" width={32} height={32}
+          <Image src="/bowen-logo.png" alt="Bowen" width={32} height={32}
             className="rounded-full object-cover border border-white/20 flex-shrink-0" />
           <span
             className="text-sm font-black text-white leading-tight"

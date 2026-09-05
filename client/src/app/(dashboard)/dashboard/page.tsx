@@ -78,7 +78,7 @@ export default function RolePickerPage() {
         <div className="flex items-center justify-center gap-2.5 mb-8">
           <Image src="/1690802623935.jpeg" alt="NACOS" width={36} height={36}
             className="rounded-full object-cover border border-gray-200 shadow-sm" />
-          <Image src="/images (32).jpeg" alt="Bowen" width={36} height={36}
+          <Image src="/bowen-logo.png" alt="Bowen" width={36} height={36}
             className="rounded-full object-cover border border-gray-200 shadow-sm" />
           <span className="text-base font-black text-gray-900" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
             NACOS BOWEN
