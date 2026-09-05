@@ -54,7 +54,7 @@ export default function SignupPage() {
             <div className="flex items-center justify-center gap-3 mb-8">
               <Image src="/1690802623935.jpeg" alt="NACOS" width={44} height={44}
                 className="rounded-full object-cover border border-gray-100 shadow-sm" />
-              <Image src="/images (32).jpeg" alt="Bowen" width={44} height={44}
+               <Image src="/bowen-logo.png" alt="Bowen" width={44} height={44}
                 className="rounded-full object-cover border border-gray-100 shadow-sm" />
               <span className="text-xl font-black text-gray-900 tracking-tight"
                 style={{ fontFamily: 'Space Grotesk, sans-serif' }}>
