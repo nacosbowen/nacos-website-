@@ -125,12 +125,11 @@ const adminLogin = async (email: string, password: string): Promise<AuthUser> =>
 
 
 const logout = async () => {
-  try { await api.post('/auth/logout'); } finally {
-    setToken(null);
-    setUser(null);
-    localStorage.removeItem(ACTIVE_ROLE_KEY);
-    router.push('/login');
-  }
+  setToken(null);
+  setUser(null);
+  localStorage.removeItem(ACTIVE_ROLE_KEY);
+  router.push('/login');
+  try { await api.post('/auth/logout'); } catch {}
 };
 
 return (

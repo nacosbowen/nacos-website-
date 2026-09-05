@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { getToken, setToken } from './token';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api';
+const API_URL = '/api';
 
 const api = axios.create({ baseURL: API_URL, withCredentials: true });
 
@@ -19,8 +19,6 @@ function processQueue(error: unknown, token: string | null) {
   failedQueue = [];
 }
 
-// Endpoints where a 401 means "wrong credentials", not "expired session" —
-// these should never trigger the silent refresh-retry flow.
 const AUTH_ENDPOINTS = ['/auth/login', '/auth/signup', '/auth/admin-login', '/auth/refresh'];
 
 function isAuthEndpoint(url?: string): boolean {
