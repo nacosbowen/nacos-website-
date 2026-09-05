@@ -30,8 +30,8 @@ function signRefresh(userId: string) {
 function setRefreshCookie(res: Response, token: string) {
   res.cookie('refreshToken', token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
+    secure: true,
+    sameSite: 'none',
     maxAge: REFRESH_EXPIRES_MS,
     path: '/',
   });
