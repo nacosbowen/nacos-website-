@@ -272,7 +272,7 @@ const handleDeleteExam = async (id: string) => {
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-6 py-8 space-y-8">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-8">
         <section>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-gray-900">User Management</h2>
@@ -291,67 +291,69 @@ const handleDeleteExam = async (id: string) => {
             ) : users.length === 0 ? (
               <div className="p-6 text-center text-gray-400 text-sm">No users found</div>
             ) : (
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
-                  <tr>
-                    <th className="text-left px-4 py-3">Name</th>
-                    <th className="text-left px-4 py-3">Matric No.</th>
-                    <th className="text-left px-4 py-3">Department</th>
-                    <th className="text-left px-4 py-3">Level</th>
-                    <th className="text-left px-4 py-3">Roles</th>
-                    <th className="text-left px-4 py-3">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {users.map((u) => (
-                    <tr key={u.id}>
-                      <td className="px-4 py-3">
-                        <div className="font-medium text-gray-900">{u.fullName}</div>
-                        <div className="text-gray-400 text-xs">{u.email}</div>
-                      </td>
-                      <td className="px-4 py-3 text-gray-600">{u.matricNumber}</td>
-                      <td className="px-4 py-3 text-gray-600">{u.department?.code}</td>
-                      <td className="px-4 py-3 text-gray-600">{u.level}</td>
-                      <td className="px-4 py-3">
-                        <div className="flex flex-wrap gap-1">
-                          {u.roles.map((r) => (
-                            <span key={r} className="inline-flex items-center gap-1 bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded-full">
-                              {r}
-                              {r !== 'student' && (
-                                <button
-                                  onClick={() => handleRoleChange(u.id, r, 'remove')}
-                                  disabled={pendingUserId === u.id}
-                                  className="text-gray-400 hover:text-red-600 font-bold"
-                                >
-                                  ×
-                                </button>
-                              )}
-                            </span>
-                          ))}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <select
-                          disabled={pendingUserId === u.id}
-                          defaultValue=""
-                          onChange={(e) => {
-                            if (e.target.value) {
-                              handleRoleChange(u.id, e.target.value, 'add');
-                              e.target.value = '';
-                            }
-                          }}
-                          className="text-xs border border-gray-200 rounded-lg px-2 py-1 bg-gray-50"
-                        >
-                          <option value="" disabled>+ Add role</option>
-                          {ASSIGNABLE_ROLES.filter((r) => !u.roles.includes(r)).map((r) => (
-                            <option key={r} value={r}>{r}</option>
-                          ))}
-                        </select>
-                      </td>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm min-w-[640px]">
+                  <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
+                    <tr>
+                      <th className="text-left px-4 py-3">Name</th>
+                      <th className="text-left px-4 py-3">Matric No.</th>
+                      <th className="text-left px-4 py-3">Department</th>
+                      <th className="text-left px-4 py-3">Level</th>
+                      <th className="text-left px-4 py-3">Roles</th>
+                      <th className="text-left px-4 py-3">Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {users.map((u) => (
+                      <tr key={u.id}>
+                        <td className="px-4 py-3">
+                          <div className="font-medium text-gray-900">{u.fullName}</div>
+                          <div className="text-gray-400 text-xs">{u.email}</div>
+                        </td>
+                        <td className="px-4 py-3 text-gray-600">{u.matricNumber}</td>
+                        <td className="px-4 py-3 text-gray-600">{u.department?.code}</td>
+                        <td className="px-4 py-3 text-gray-600">{u.level}</td>
+                        <td className="px-4 py-3">
+                          <div className="flex flex-wrap gap-1">
+                            {u.roles.map((r) => (
+                              <span key={r} className="inline-flex items-center gap-1 bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded-full">
+                                {r}
+                                {r !== 'student' && (
+                                  <button
+                                    onClick={() => handleRoleChange(u.id, r, 'remove')}
+                                    disabled={pendingUserId === u.id}
+                                    className="text-gray-400 hover:text-red-600 font-bold"
+                                  >
+                                    ×
+                                  </button>
+                                )}
+                              </span>
+                            ))}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <select
+                            disabled={pendingUserId === u.id}
+                            defaultValue=""
+                            onChange={(e) => {
+                              if (e.target.value) {
+                                handleRoleChange(u.id, e.target.value, 'add');
+                                e.target.value = '';
+                              }
+                            }}
+                            className="text-xs border border-gray-200 rounded-lg px-2 py-1 bg-gray-50"
+                          >
+                            <option value="" disabled>+ Add role</option>
+                            {ASSIGNABLE_ROLES.filter((r) => !u.roles.includes(r)).map((r) => (
+                              <option key={r} value={r}>{r}</option>
+                            ))}
+                          </select>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
         </section>
@@ -359,7 +361,7 @@ const handleDeleteExam = async (id: string) => {
 <section>
   <h2 className="text-lg font-semibold text-gray-900 mb-4">Timetable Management</h2>
 
-  <div className="flex gap-3 mb-4">
+  <div className="flex flex-wrap gap-3 mb-4">
     <select value={selectedDept} onChange={(e) => setSelectedDept(Number(e.target.value) || '')}
       className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white">
       <option value="">Select department</option>
@@ -384,35 +386,37 @@ const handleDeleteExam = async (id: string) => {
         ) : entries.length === 0 ? (
           <div className="p-6 text-center text-gray-400 text-sm">No entries yet for this department/level</div>
         ) : (
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
-              <tr>
-                <th className="text-left px-4 py-3">Day</th>
-                <th className="text-left px-4 py-3">Time</th>
-                <th className="text-left px-4 py-3">Course</th>
-                <th className="text-left px-4 py-3">Venue</th>
-                <th className="text-left px-4 py-3"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {entries.map((e) => (
-                <tr key={e.id}>
-                  <td className="px-4 py-3 text-gray-600">{e.day}</td>
-                  <td className="px-4 py-3 text-gray-600">{e.startTime} – {e.endTime}</td>
-                  <td className="px-4 py-3">
-                    <div className="font-medium text-gray-900">{e.courseCode}</div>
-                    <div className="text-gray-400 text-xs">{e.courseTitle}</div>
-                  </td>
-                  <td className="px-4 py-3 text-gray-600">{e.venue || '—'}</td>
-                  <td className="px-4 py-3">
-                    <button onClick={() => handleDeleteEntry(e.id)} className="text-gray-400 hover:text-red-600 text-xs font-semibold">
-                      Delete
-                    </button>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[560px]">
+              <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
+                <tr>
+                  <th className="text-left px-4 py-3">Day</th>
+                  <th className="text-left px-4 py-3">Time</th>
+                  <th className="text-left px-4 py-3">Course</th>
+                  <th className="text-left px-4 py-3">Venue</th>
+                  <th className="text-left px-4 py-3"></th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {entries.map((e) => (
+                  <tr key={e.id}>
+                    <td className="px-4 py-3 text-gray-600">{e.day}</td>
+                    <td className="px-4 py-3 text-gray-600">{e.startTime} – {e.endTime}</td>
+                    <td className="px-4 py-3">
+                      <div className="font-medium text-gray-900">{e.courseCode}</div>
+                      <div className="text-gray-400 text-xs">{e.courseTitle}</div>
+                    </td>
+                    <td className="px-4 py-3 text-gray-600">{e.venue || '—'}</td>
+                    <td className="px-4 py-3">
+                      <button onClick={() => handleDeleteEntry(e.id)} className="text-gray-400 hover:text-red-600 text-xs font-semibold">
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 
@@ -460,37 +464,39 @@ const handleDeleteExam = async (id: string) => {
         ) : examEntries.length === 0 ? (
           <div className="p-6 text-center text-gray-400 text-sm">No exams yet for this department/level</div>
         ) : (
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
-              <tr>
-                <th className="text-left px-4 py-3">Date</th>
-                <th className="text-left px-4 py-3">Time</th>
-                <th className="text-left px-4 py-3">Course</th>
-                <th className="text-left px-4 py-3">Duration</th>
-                <th className="text-left px-4 py-3">Venue</th>
-                <th className="text-left px-4 py-3"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {examEntries.map((ex) => (
-                <tr key={ex.id}>
-                  <td className="px-4 py-3 text-gray-600">{new Date(ex.date).toLocaleDateString()}</td>
-                  <td className="px-4 py-3 text-gray-600">{ex.time}</td>
-                  <td className="px-4 py-3">
-                    <div className="font-medium text-gray-900">{ex.courseCode}</div>
-                    <div className="text-gray-400 text-xs">{ex.courseTitle}</div>
-                  </td>
-                  <td className="px-4 py-3 text-gray-600">{ex.duration}</td>
-                  <td className="px-4 py-3 text-gray-600">{ex.venue || '—'}</td>
-                  <td className="px-4 py-3">
-                    <button onClick={() => handleDeleteExam(ex.id)} className="text-gray-400 hover:text-red-600 text-xs font-semibold">
-                      Delete
-                    </button>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[640px]">
+              <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
+                <tr>
+                  <th className="text-left px-4 py-3">Date</th>
+                  <th className="text-left px-4 py-3">Time</th>
+                  <th className="text-left px-4 py-3">Course</th>
+                  <th className="text-left px-4 py-3">Duration</th>
+                  <th className="text-left px-4 py-3">Venue</th>
+                  <th className="text-left px-4 py-3"></th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {examEntries.map((ex) => (
+                  <tr key={ex.id}>
+                    <td className="px-4 py-3 text-gray-600">{new Date(ex.date).toLocaleDateString()}</td>
+                    <td className="px-4 py-3 text-gray-600">{ex.time}</td>
+                    <td className="px-4 py-3">
+                      <div className="font-medium text-gray-900">{ex.courseCode}</div>
+                      <div className="text-gray-400 text-xs">{ex.courseTitle}</div>
+                    </td>
+                    <td className="px-4 py-3 text-gray-600">{ex.duration}</td>
+                    <td className="px-4 py-3 text-gray-600">{ex.venue || '—'}</td>
+                    <td className="px-4 py-3">
+                      <button onClick={() => handleDeleteExam(ex.id)} className="text-gray-400 hover:text-red-600 text-xs font-semibold">
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 
@@ -535,7 +541,7 @@ const handleDeleteExam = async (id: string) => {
     </div>
   )}
 
-  <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+  <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6 space-y-4">
     {dinner?.imageUrl && (
       <img src={`${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '')}${dinner.imageUrl}`}
         alt="Dinner" className="w-full h-40 object-cover rounded-lg" />
@@ -548,10 +554,10 @@ const handleDeleteExam = async (id: string) => {
       {imageUploading && <p className="text-xs text-gray-400 mt-1">Uploading...</p>}
     </div>
 
-    <form onSubmit={handleDinnerSave} className="grid grid-cols-2 gap-3">
+    <form onSubmit={handleDinnerSave} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
       <input placeholder="Title" value={dinnerForm.title || ''}
         onChange={(e) => setDinnerForm({ ...dinnerForm, title: e.target.value })}
-        className="text-sm border border-gray-200 rounded-lg px-3 py-2 col-span-2" />
+        className="text-sm border border-gray-200 rounded-lg px-3 py-2 sm:col-span-2" />
       <input type="datetime-local" value={dinnerForm.date || ''}
         onChange={(e) => setDinnerForm({ ...dinnerForm, date: e.target.value })}
         className="text-sm border border-gray-200 rounded-lg px-3 py-2" />
@@ -560,7 +566,7 @@ const handleDeleteExam = async (id: string) => {
         className="text-sm border border-gray-200 rounded-lg px-3 py-2" />
       <input placeholder="Venue" value={dinnerForm.venue || ''}
         onChange={(e) => setDinnerForm({ ...dinnerForm, venue: e.target.value })}
-        className="text-sm border border-gray-200 rounded-lg px-3 py-2 col-span-2" />
+        className="text-sm border border-gray-200 rounded-lg px-3 py-2 sm:col-span-2" />
       <input placeholder="Theme" value={dinnerForm.theme || ''}
         onChange={(e) => setDinnerForm({ ...dinnerForm, theme: e.target.value })}
         className="text-sm border border-gray-200 rounded-lg px-3 py-2" />
@@ -569,12 +575,12 @@ const handleDeleteExam = async (id: string) => {
         className="text-sm border border-gray-200 rounded-lg px-3 py-2" />
       <textarea placeholder="Dress Code" value={dinnerForm.dressCode || ''}
         onChange={(e) => setDinnerForm({ ...dinnerForm, dressCode: e.target.value })}
-        className="text-sm border border-gray-200 rounded-lg px-3 py-2 col-span-2" rows={2} />
+        className="text-sm border border-gray-200 rounded-lg px-3 py-2 sm:col-span-2" rows={2} />
       <textarea placeholder="Highlights (one per line)" value={dinnerForm.highlights || ''}
         onChange={(e) => setDinnerForm({ ...dinnerForm, highlights: e.target.value })}
-        className="text-sm border border-gray-200 rounded-lg px-3 py-2 col-span-2" rows={4} />
+        className="text-sm border border-gray-200 rounded-lg px-3 py-2 sm:col-span-2" rows={4} />
       <button type="submit" disabled={dinnerSaving}
-        className="col-span-2 bg-gray-900 text-white text-sm font-semibold py-2 rounded-lg hover:bg-gray-800 disabled:opacity-60">
+        className="sm:col-span-2 bg-gray-900 text-white text-sm font-semibold py-2 rounded-lg hover:bg-gray-800 disabled:opacity-60">
         {dinnerSaving ? 'Saving...' : 'Save Dinner Details'}
       </button>
     </form>
