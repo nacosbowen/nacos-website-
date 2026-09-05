@@ -93,7 +93,7 @@ function ResetPasswordForm() {
                   </label>
                   <input type="password" required value={newPassword} onChange={e => setNewPassword(e.target.value)}
                     placeholder="At least 8 characters"
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-sm text-gray-900
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-base text-gray-900
                       placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent
                       transition-all duration-200" />
                 </div>
@@ -105,7 +105,7 @@ function ResetPasswordForm() {
                   </label>
                   <input type="password" required value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)}
                     placeholder="Re-enter your new password"
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-sm text-gray-900
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-base text-gray-900
                       placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent
                       transition-all duration-200" />
                 </div>

@@ -66,7 +66,7 @@ export default function AdminLoginPage() {
                 </label>
                 <input type="email" required value={email} onChange={e => setEmail(e.target.value)}
                   placeholder="admin@nacos.bowen.edu.ng"
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-sm text-gray-900
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-base text-gray-900
                     placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent
                     transition-all duration-200" />
               </div>
@@ -78,7 +78,7 @@ export default function AdminLoginPage() {
                 </label>
                 <input type="password" required value={password} onChange={e => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-sm text-gray-900
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-base text-gray-900
                     placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent
                     transition-all duration-200" />
               </div>
