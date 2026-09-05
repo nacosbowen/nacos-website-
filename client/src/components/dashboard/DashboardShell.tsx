@@ -128,6 +128,7 @@ export default function DashboardShell({
   const { user, logout, activeRole } = useAuth();
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const navItems = NAV_BY_ROLE[activeRole] ?? STUDENT_NAV;
 
@@ -135,8 +136,52 @@ export default function DashboardShell({
     ? user.fullName.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase()
     : '??';
 
+  const handleConfirmLogout = () => {
+    setShowLogoutConfirm(false);
+    logout();
+  };
+
   return (
     <div className="flex min-h-screen bg-[#f5f5f5]">
+
+      {/* Logout confirmation modal */}
+      {showLogoutConfirm && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
+          onClick={() => setShowLogoutConfirm(false)}
+        >
+          <div
+            className="bg-white rounded-2xl p-6 w-full max-w-xs shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3
+              className="text-base font-black text-gray-900 mb-2"
+              style={{ fontFamily: "'Space Grotesk', sans-serif" }}
+            >
+              Sign out?
+            </h3>
+            <p className="text-sm text-gray-500 mb-5">
+              You'll need to log in again to access your dashboard.
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowLogoutConfirm(false)}
+                className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 transition"
+                style={{ fontFamily: "'Space Grotesk', sans-serif" }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmLogout}
+                className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white bg-red-500 hover:bg-red-600 transition"
+                style={{ fontFamily: "'Space Grotesk', sans-serif" }}
+              >
+                Sign out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Sidebar overlay (mobile) */}
       {sidebarOpen && (
@@ -225,7 +270,7 @@ export default function DashboardShell({
             </div>
           </div>
           <button
-            onClick={logout}
+            onClick={() => setShowLogoutConfirm(true)}
             className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-white/40 hover:text-red-400 hover:bg-red-500/10 transition-all duration-200"
             style={{ fontFamily: "'Space Grotesk', sans-serif" }}
           >
@@ -261,7 +306,7 @@ export default function DashboardShell({
             {title}
           </h1>
 
-          <div className="ml-auto flex items-center gap-3">
+          <div className="ml-auto flex items-center gap-2 sm:gap-3">
             <div className="hidden sm:flex flex-col items-end">
               <span className="text-xs font-semibold text-gray-700" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
                 {user?.fullName}
@@ -275,11 +320,23 @@ export default function DashboardShell({
                 {initials}
               </span>
             </div>
+            {/* Always-accessible sign-out button — visible on every screen size,
+                so users don't have to open the sidebar/hamburger menu to log out. */}
+            <button
+              onClick={() => setShowLogoutConfirm(true)}
+              aria-label="Sign out"
+              title="Sign out"
+              className="p-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all duration-200 flex-shrink-0"
+            >
+              <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                <path fillRule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clipRule="evenodd" />
+              </svg>
+            </button>
           </div>
         </header>
 
         {/* Page content */}
-        <main className="flex-1 overflow-auto p-5 lg:p-7">
+        <main className="flex-1 overflow-auto p-3 sm:p-5 lg:p-7">
           {children}
         </main>
       </div>

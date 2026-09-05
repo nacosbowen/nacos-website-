@@ -1,37 +1,49 @@
+import Image from 'next/image';
+
 const TOP_EXECS = [
-  { role: 'President' },
-  { role: 'Vice President' },
+  { role: 'President', name: 'Eniola Somoye', imageUrl: '' },
+  { role: 'Vice President', name: 'Ayomikun Akinade', imageUrl: '/executives/Ayomikun.jpeg' },
 ];
 
 const MAIN_EXECS = [
-  { role: 'General Secretary' },
-  { role: 'Academic Director' },
-  { role: 'Financial Secretary' },
-  { role: 'Welfare Director' },
-  { role: 'PRO 1' },
-  { role: 'Chief Whip' },
-  { role: 'Sports Director (Male)' },
-  { role: 'Sports Director (Female)' },
-  { role: 'Social Director (Male)' },
-  { role: 'Social Director (Female)' },
-  { role: 'Software Director' },
-  { role: 'Hardware Director' },
-  { role: 'CS Commissioner' },
-  { role: 'SE Commissioner' },
-  { role: 'CYB Commissioner' },
-  { role: 'IFT Commissioner' },
-  { role: 'Asst. General Secretary' },
-  { role: 'Asst. Welfare Director' },
-  { role: 'Asst. Academic Director' },
-  { role: 'Asst. Software Director' },
+  { role: 'General Secretary', name: 'Toluwalase Oduyemi', imageUrl: '/executives/toluwalase.jpg' },
+  { role: 'Academic Director', name: 'Afonrinwo Fifunmi', imageUrl: '/executives/fifunmi.jpeg' },
+  { role: 'Financial Secretary', name: 'Itansanogooluwa Agunloye', imageUrl: '' },
+  { role: 'Welfare Director', name: 'Victoria Asabor', imageUrl: '' },
+  { role: 'PRO 1', name: 'Opemipo Oladiti', imageUrl: '' },
+  { role: 'Chief Whip', name: '', imageUrl: '' },
+  { role: 'Sports Director (Male)', name: 'Oluwafemi Adesope', imageUrl: '' },
+  { role: 'Sports Director (Female)', name: 'Deborah Egenuka', imageUrl: '/executives/deborah.jpeg' },
+  { role: 'Social Director (Male)', name: 'Chijioke David', imageUrl: '' },
+  { role: 'Social Director (Female)', name: 'Oreoluwa Owobamirin', imageUrl: '/executives/ore.jpeg' },
+  { role: 'Software Director', name: 'Emmanuel Odofin', imageUrl: '/executives/Emmanuel.jpeg' },
+  { role: 'Hardware Director', name: 'Zoe Ayilara', imageUrl: '' },
+  { role: 'CS Commissioner', name: 'Tolulope Adegoke', imageUrl: '/executives/tolu.png' },
+  { role: 'SE Commissioner', name: 'Favour Owoyalumo', imageUrl: '' },
+  { role: 'CYB Commissioner', name: 'Zzim Madaki', imageUrl: '/executives/zzim.jpg' },
+  { role: 'IFT Commissioner', name: 'Obaloluwa Waheed', imageUrl: '/executives/oba.png' },
+  { role: 'Asst. General Secretary', name: 'Temiloluwa Daramola', imageUrl: '/executives/temi.jpeg' },
+  { role: 'Asst. Welfare Director', name: 'Benedicta Boardman', imageUrl: '/executives/benedicta.jpeg' },
+  { role: 'Asst. Academic Director', name: 'Bright Lawal', imageUrl: '' },
+  { role: 'Asst. Software Director', name: 'Boluwatito Akinnuoye', imageUrl: '/executives/tito.jpeg' },
 ];
 
 const BOTTOM_EXECS = [
-  { role: 'Asst. Hardware Director' },
-  { role: 'PRO 2' },
+  { role: 'Asst. Hardware Director', name: '', imageUrl: '' },
+  { role: 'PRO 2', name: '', imageUrl: '' },
 ];
 
-function ExecCard({ role, large = false }: { role: string; large?: boolean }) {
+function ExecCard({
+  role,
+  name,
+  imageUrl,
+  large = false,
+}: {
+  role: string;
+  name?: string;
+  imageUrl?: string;
+  large?: boolean;
+}) {
   return (
     <div className="group relative cursor-default h-full">
       {/* Depth layer 2 */}
@@ -50,18 +62,28 @@ function ExecCard({ role, large = false }: { role: string; large?: boolean }) {
       >
         {/* Avatar circle */}
         <div
-          className={`rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center flex-shrink-0
-            ${large ? 'w-28 h-28' : 'w-16 h-16'}`}
+         className={`rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center flex-shrink-0 overflow-hidden
+           ${large ? 'w-24 h-24 sm:w-32 sm:h-32 lg:w-40 lg:h-40' : 'w-24 h-24'}`}
         >
-          {/* Placeholder person silhouette */}
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            className={`text-gray-300 ${large ? 'w-14 h-14' : 'w-8 h-8'}`}
-          >
-            <circle cx="12" cy="8" r="4" fill="currentColor" />
-            <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" fill="currentColor" />
-          </svg>
+          {imageUrl ? (
+            <Image
+              src={imageUrl}
+              alt={name || role}
+              width={large ? 160 : 96}
+              height={large ? 160 : 96}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            /* Placeholder person silhouette */
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              className={`text-gray-300 ${large ? 'w-20 h-20' : 'w-12 h-12'}`}
+            >
+              <circle cx="12" cy="8" r="4" fill="currentColor" />
+              <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" fill="currentColor" />
+            </svg>
+          )}
         </div>
 
         {/* Role title */}
@@ -73,14 +95,14 @@ function ExecCard({ role, large = false }: { role: string; large?: boolean }) {
           {role}
         </p>
 
-        {/* Name placeholder */}
+        {/* Name */}
         <div className="w-full mt-auto">
           <div className="h-px bg-gray-100 w-4/5 mx-auto rounded-full mb-1.5" />
           <p
-            className="text-xs text-center text-gray-300 tracking-wide"
+            className={`text-xs text-center tracking-wide ${name ? 'text-gray-500' : 'text-gray-300'}`}
             style={{ fontFamily: "'Space Grotesk', sans-serif" }}
           >
-            Full name
+            {name || 'Full name'}
           </p>
         </div>
       </div>
@@ -108,18 +130,18 @@ export default function ExecutivesSection() {
         </div>
 
         {/* President + Vice President */}
-        <div className="flex justify-center gap-10 mb-10">
+        <div className="flex flex-wrap justify-center gap-4 sm:gap-6 lg:gap-10 mb-10 px-2">
           {TOP_EXECS.map((exec) => (
-            <div key={exec.role} className="w-52">
-              <ExecCard role={exec.role} large />
+            <div key={exec.role} className="w-36 sm:w-48 lg:w-60">
+              <ExecCard role={exec.role} name={exec.name} imageUrl={exec.imageUrl} large />
             </div>
           ))}
         </div>
 
-        {/* Main grid — 4 cols × 5 rows */}
+        {/* Main grid — 4 cols x 5 rows */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 items-stretch mb-8">
           {MAIN_EXECS.map((exec) => (
-            <ExecCard key={exec.role} role={exec.role} />
+            <ExecCard key={exec.role} role={exec.role} name={exec.name} imageUrl={exec.imageUrl} />
           ))}
         </div>
 
@@ -127,7 +149,7 @@ export default function ExecutivesSection() {
         <div className="flex justify-center gap-8">
           {BOTTOM_EXECS.map((exec) => (
             <div key={exec.role} className="w-[calc(25%-1rem)]">
-              <ExecCard role={exec.role} />
+              <ExecCard role={exec.role} name={exec.name} imageUrl={exec.imageUrl} />
             </div>
           ))}
         </div>

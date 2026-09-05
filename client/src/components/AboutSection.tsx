@@ -3,17 +3,17 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 
 const SLIDES = [
-  { src: '/slidingpictures/DSC_7511.jpg', alt: 'NACOS Event' },
-  { src: '/slidingpictures/DSC_7525.jpg', alt: 'NACOS Event' },
-  { src: '/slidingpictures/DSC_7541.jpg', alt: 'NACOS Event' },
-  { src: '/slidingpictures/DSC_7544.jpg', alt: 'NACOS Event' },
-  { src: '/slidingpictures/DSC_7551.jpg', alt: 'NACOS Event' },
-  { src: '/slidingpictures/DSC_7579 (1).jpg', alt: 'NACOS Event' },
-  { src: '/slidingpictures/OBD_6018 (1).jpg', alt: 'NACOS Event' },
-  { src: '/slidingpictures/OBD_6129.jpg', alt: 'NACOS Event' },
-  { src: '/slidingpictures/OBD_6207.jpg', alt: 'NACOS Event' },
-  { src: '/slidingpictures/OBD_6301.jpg', alt: 'NACOS Event' },
-  { src: '/slidingpictures/OBD_6311.jpg', alt: 'NACOS Event' },
+  { src: '/slidingpictures/aboutSlide1.png', alt: 'NACOS Event' },
+  { src: '/slidingpictures/aboutslide2.png', alt: 'NACOS Event' },
+  { src: '/slidingpictures/aboutslide3.png', alt: 'NACOS Event' },
+  { src: '/slidingpictures/aboutslide4.png', alt: 'NACOS Event' },
+  { src: '/slidingpictures/aboutslide5.png', alt: 'NACOS Event' },
+  { src: '/slidingpictures/aboutslide6.png', alt: 'NACOS Event' },
+  { src: '/slidingpictures/aboutslide7.png', alt: 'NACOS Event' },
+  { src: '/slidingpictures/aboutslide8.png', alt: 'NACOS Event' },
+  { src: '/slidingpictures/aboutslide9.png', alt: 'NACOS Event' },
+  { src: '/slidingpictures/aboutslide10.png', alt: 'NACOS Event' },
+  { src: '/slidingpictures/aboutslide11.png', alt: 'NACOS Event' },
 ];
 
 export default function AboutSection() {
@@ -65,7 +65,7 @@ export default function AboutSection() {
             From real-time campus notifications and exam past questions to department events and executive broadcasts — everything you need as a tech student is right here.
           </p>
           <div className="grid grid-cols-3 gap-4 pt-2">
-            {[{ value: '4', label: 'Departments' }, { value: '1000+', label: 'Students' }, { value: '5', label: 'Levels' }].map(stat => (
+            {[{ value: '4', label: 'Departments' }, { value: '1000+', label: 'Students' }, { value: '4', label: 'Levels' }].map(stat => (
               <div key={stat.label} className="bg-gray-50 rounded-2xl p-4 text-center border border-gray-100">
                 <p className="text-2xl font-black text-gray-900">{stat.value}</p>
                 <p className="text-xs text-gray-400 mt-0.5 font-medium">{stat.label}</p>

@@ -19,11 +19,25 @@ function processQueue(error: unknown, token: string | null) {
   failedQueue = [];
 }
 
+// Endpoints where a 401 means "wrong credentials", not "expired session" —
+// these should never trigger the silent refresh-retry flow.
+const AUTH_ENDPOINTS = ['/auth/login', '/auth/signup', '/auth/admin-login', '/auth/refresh'];
+
+function isAuthEndpoint(url?: string): boolean {
+  if (!url) return false;
+  return AUTH_ENDPOINTS.some((endpoint) => url.includes(endpoint));
+}
+
 api.interceptors.response.use(
   (res) => res,
   async (error) => {
     const original = error.config;
-    if (error.response?.status === 401 && !original._retry) {
+
+    if (
+      error.response?.status === 401 &&
+      !original._retry &&
+      !isAuthEndpoint(original?.url)
+    ) {
       if (isRefreshing) {
         return new Promise<string>((resolve, reject) => { failedQueue.push({ resolve, reject }); })
           .then((token) => { original.headers.Authorization = `Bearer ${token}`; return api(original); });
@@ -36,11 +50,11 @@ api.interceptors.response.use(
         processQueue(null, data.accessToken);
         original.headers.Authorization = `Bearer ${data.accessToken}`;
         return api(original);
-} catch (err) {
-  processQueue(err, null);
-  setToken(null);
-  return Promise.reject(err);
-} finally { isRefreshing = false; }
+      } catch (err) {
+        processQueue(err, null);
+        setToken(null);
+        return Promise.reject(err);
+      } finally { isRefreshing = false; }
     }
     return Promise.reject(error);
   }

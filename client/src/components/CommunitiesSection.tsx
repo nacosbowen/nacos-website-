@@ -1,9 +1,11 @@
+import Image from 'next/image';
+
 const COMMUNITIES = [
-  { name: 'She Code Africa' },
-  { name: 'GDG Developer Groups' },
-  { name: 'Bowen Tech Hub' },
-  { name: 'BTW Team' },
-  { name: 'Electoral Community' },
+  { name: 'She Code Africa', imageUrl: '/communities/shecodeafrica.png' },
+  { name: 'GDG Developer Groups', imageUrl: '/communities/gdg.png' },
+  { name: 'Bowen Tech Hub', imageUrl: '/communities/bth.png' },
+  { name: 'BTW Team', imageUrl: '/communities/btw.jpeg' },
+  { name: 'Electoral Community', imageUrl: '/communities/election.png' },
 ];
 
 // Duplicate for seamless loop
@@ -52,11 +54,15 @@ export default function CommunitiesSection() {
                 flex items-center justify-center"
               >
                 {/* Placeholder icon */}
+                {community.imageUrl ? (
+                <Image src={community.imageUrl} alt={community.name} fill className="object-cover" />
+              ) : (
                 <svg viewBox="0 0 48 48" fill="none" className="w-14 h-14 text-gray-200">
                   <rect x="4" y="10" width="40" height="28" rx="4" fill="currentColor" />
                   <circle cx="18" cy="21" r="5" fill="white" opacity="0.8" />
                   <path d="M4 32l10-8 8 6 8-10 14 14" stroke="white" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" opacity="0.8" />
                 </svg>
+              )}
                 {/* Subtle shine overlay */}
                 <div className="absolute inset-0 bg-gradient-to-br from-white/40 via-transparent to-transparent pointer-events-none" />
               </div>

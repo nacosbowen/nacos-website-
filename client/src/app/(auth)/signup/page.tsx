@@ -33,16 +33,18 @@ export default function SignupPage() {
     try {
       await signup(email, matricNumber, password);
       router.push(`/verify-email?email=${encodeURIComponent(email)}`);
+      // Don't reset loading here on success — keep the button in its
+      // "loading" state until navigation actually takes over, so it
+      // doesn't flash back to "Sign Up" for a moment beforehand.
     } catch (err: any) {
       const message = err?.response?.data?.message || 'Signup failed. Please try again.';
       setError(message);
-    } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 bg-[#f7f7f7]">
+    <div className="min-h-screen flex items-center justify-center px-4 bg-[#f7f7f7] overflow-x-hidden">
       <div className="w-full max-w-md">
         <div className="relative">
           <div className="absolute top-5 left-5 right-[-10px] bottom-[-10px] bg-gray-300 rounded-3xl" />
@@ -79,7 +81,7 @@ export default function SignupPage() {
                 </label>
                 <input type="email" required value={email} onChange={e => setEmail(e.target.value)}
                   placeholder="yourname@bowen.edu.ng"
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-sm text-gray-900
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-base text-gray-900
                     placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent
                     transition-all duration-200" />
               </div>
@@ -91,7 +93,7 @@ export default function SignupPage() {
                 </label>
                 <input type="text" required value={matricNumber} onChange={e => setMatricNumber(e.target.value)}
                   placeholder="e.g. BU23CSC1003"
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-sm text-gray-900
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-base text-gray-900
                     placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent
                     transition-all duration-200" />
               </div>
@@ -103,7 +105,7 @@ export default function SignupPage() {
                 </label>
                 <input type="password" required value={password} onChange={e => setPassword(e.target.value)}
                   placeholder="At least 8 characters"
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-sm text-gray-900
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-base text-gray-900
                     placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent
                     transition-all duration-200" />
               </div>
@@ -115,7 +117,7 @@ export default function SignupPage() {
                 </label>
                 <input type="password" required value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)}
                   placeholder="Re-enter your password"
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-sm text-gray-900
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-base text-gray-900
                     placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent
                     transition-all duration-200" />
               </div>
