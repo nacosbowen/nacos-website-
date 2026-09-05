@@ -143,13 +143,15 @@ model RefreshToken {
 }
 
 model Notification {
-  id          String               @id @default(uuid())
-  title       String
-  body        String
-  audience    NotificationAudience @default(all)
-  category    NotificationCategory @default(general)
-  createdById String
-  createdAt   DateTime             @default(now())
+  id             String               @id @default(uuid())
+  title          String
+  body           String
+  audience       NotificationAudience @default(all)
+  category       NotificationCategory @default(general)
+  createdById    String
+  createdAt      DateTime             @default(now())
+  isPopup        Boolean              @default(false)
+  popupExpiresAt DateTime?
 
   reads NotificationRead[]
 }

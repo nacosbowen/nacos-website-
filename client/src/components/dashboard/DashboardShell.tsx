@@ -1,9 +1,10 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import api from '@/lib/api';
 
 interface NavItem {
   href: string;
@@ -118,6 +119,13 @@ const ROLE_BADGE: Record<string, string> = {
   admin: 'Admin',
 };
 
+interface PopupNotification {
+  id: string;
+  title: string;
+  body: string;
+  category: string;
+}
+
 export default function DashboardShell({
   children,
   title,
@@ -129,6 +137,8 @@ export default function DashboardShell({
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [popup, setPopup] = useState<PopupNotification | null>(null);
+  const [dismissing, setDismissing] = useState(false);
 
   const navItems = NAV_BY_ROLE[activeRole] ?? STUDENT_NAV;
 
@@ -141,8 +151,65 @@ export default function DashboardShell({
     logout();
   };
 
+  // Check for an active broadcast popup once per dashboard session load.
+  useEffect(() => {
+    if (!user) return;
+    api.get('/notifications/popup')
+      .then((r) => {
+        if (r.data) setPopup(r.data);
+      })
+      .catch(() => {});
+  }, [user]);
+
+  const handleDismissPopup = async () => {
+    if (!popup || dismissing) return;
+    setDismissing(true);
+    try {
+      await api.patch(`/notifications/${popup.id}/read`);
+    } catch {
+      // even if this fails, don't trap the user behind the popup
+    } finally {
+      setPopup(null);
+      setDismissing(false);
+    }
+  };
+
   return (
     <div className="flex min-h-screen bg-[#f5f5f5]">
+
+      {/* Broadcast popup */}
+      {popup && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 px-4"
+          onClick={handleDismissPopup}
+        >
+          <div
+            className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <span className="inline-block text-[10px] font-bold tracking-widest uppercase px-2.5 py-1 rounded-full bg-gray-100 text-gray-500 capitalize mb-3">
+              {popup.category}
+            </span>
+            <h3
+              className="text-lg font-black text-gray-900 mb-2"
+              style={{ fontFamily: "'Space Grotesk', sans-serif" }}
+            >
+              {popup.title}
+            </h3>
+            <p className="text-sm text-gray-600 leading-relaxed mb-6">
+              {popup.body}
+            </p>
+            <button
+              onClick={handleDismissPopup}
+              disabled={dismissing}
+              className="w-full py-2.5 rounded-xl text-sm font-bold text-white bg-gray-900 hover:bg-gray-800 transition disabled:opacity-60"
+              style={{ fontFamily: "'Space Grotesk', sans-serif" }}
+            >
+              Got it
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Logout confirmation modal */}
       {showLogoutConfirm && (

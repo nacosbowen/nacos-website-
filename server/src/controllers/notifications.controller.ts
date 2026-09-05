@@ -60,14 +60,44 @@ export const getUnreadCount = asyncHandler(async (req: Request, res: Response) =
   return res.json({ count: total - read });
 });
 
+// GET /api/notifications/popup
+// Returns the single most recent active popup notification for this user
+// (matches their audience, hasn't expired, and they haven't dismissed it yet).
+export const getActivePopup = asyncHandler(async (req: Request, res: Response) => {
+  const userId = (req as any).userId;
+
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) return res.json(null);
+
+  const levelAudience = `level_${user.level}` as NotificationAudience;
+
+  const popup = await prisma.notification.findFirst({
+    where: {
+      isPopup: true,
+      audience: { in: ['all', levelAudience] },
+      popupExpiresAt: { gt: new Date() },
+      reads: { none: { userId } },
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  return res.json(popup);
+});
+
 // POST /api/notifications  (exec/admin)
 export const createNotification = asyncHandler(async (req: Request, res: Response) => {
   const userId = (req as any).userId;
-  const { title, body, audience, category } = req.body;
+  const { title, body, audience, category, isPopup, popupDays } = req.body;
 
   if (!title || !body) {
     return res.status(400).json({ message: 'Title and body are required' });
   }
+
+  const shouldPopup = !!isPopup;
+  const days = Number(popupDays) > 0 ? Number(popupDays) : 1;
+  const popupExpiresAt = shouldPopup
+    ? new Date(Date.now() + days * 24 * 60 * 60 * 1000)
+    : null;
 
   const notification = await prisma.notification.create({
     data: {
@@ -76,12 +106,14 @@ export const createNotification = asyncHandler(async (req: Request, res: Respons
       audience: audience ?? 'all',
       category: category ?? 'general',
       createdById: userId,
+      isPopup: shouldPopup,
+      popupExpiresAt,
     },
   });
 
   // Emit real-time to appropriate rooms
-const targetRoom = audience && audience !== 'all' ? audience : 'level_all';
-io.to(targetRoom).emit('notification:new', notification);
+  const targetRoom = audience && audience !== 'all' ? audience : 'level_all';
+  io.to(targetRoom).emit('notification:new', notification);
 
   return res.status(201).json(notification);
 });
