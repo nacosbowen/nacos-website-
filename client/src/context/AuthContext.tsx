@@ -17,6 +17,13 @@ export interface AuthUser {
   courseRepLevel: number | null;
 }
 
+export interface PopupNotification {
+  id: string;
+  title: string;
+  body: string;
+  category: string;
+}
+
 interface AuthContextValue {
   user: AuthUser | null;
   isLoading: boolean;
@@ -30,6 +37,9 @@ interface AuthContextValue {
 
   adminLogin: (email: string, password: string) => Promise<AuthUser>;
   logout: () => Promise<void>;
+
+  popup: PopupNotification | null;
+  dismissPopup: () => void;
 }
 
 const ROLE_PRIORITY = ['admin', 'executive', 'course_rep', 'student'];
@@ -42,6 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [overrideRole, setOverrideRole] = useState<string | null>(null);
+  const [popup, setPopup] = useState<PopupNotification | null>(null);
   const router = useRouter();
 
   const activeRole = overrideRole ?? (user ? getTopRole(user.roles) : 'student');
@@ -90,6 +101,27 @@ useEffect(() => {
   };
 }, [user]);
 
+// Check for an active broadcast popup once per login/session — keyed on
+// user id, so this fires once when a user first becomes authenticated
+// (fresh login, or a page reload that restores the session), not on
+// every internal dashboard navigation.
+useEffect(() => {
+  if (!user) {
+    setPopup(null);
+    return;
+  }
+  api.get('/notifications/popup')
+    .then((r) => {
+      if (r.data) setPopup(r.data);
+    })
+    .catch(() => {});
+}, [user?.id]);
+
+// Dismissing only hides the popup for this session/login — it is not
+// marked as permanently read, so it will show again the next time the
+// student logs in, for as long as the executive's day window is active.
+const dismissPopup = () => setPopup(null);
+
 const login = async (email: string, password: string, selectedRole: string): Promise<AuthUser> => {
   const { data } = await api.post('/auth/login', { email, password, selectedRole });
   setToken(data.accessToken);
@@ -133,7 +165,7 @@ const logout = async () => {
 };
 
 return (
-  <AuthContext.Provider value={{ user, isLoading, isAuthenticated: !!user, activeRole, setActiveRole, login, signup, forgotPassword, resetPassword, adminLogin, logout }}>
+  <AuthContext.Provider value={{ user, isLoading, isAuthenticated: !!user, activeRole, setActiveRole, login, signup, forgotPassword, resetPassword, adminLogin, logout, popup, dismissPopup }}>
     {children}
   </AuthContext.Provider>
 );

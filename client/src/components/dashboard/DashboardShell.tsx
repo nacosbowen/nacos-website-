@@ -1,10 +1,9 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import api from '@/lib/api';
 
 interface NavItem {
   href: string;
@@ -119,13 +118,6 @@ const ROLE_BADGE: Record<string, string> = {
   admin: 'Admin',
 };
 
-interface PopupNotification {
-  id: string;
-  title: string;
-  body: string;
-  category: string;
-}
-
 export default function DashboardShell({
   children,
   title,
@@ -133,12 +125,10 @@ export default function DashboardShell({
   children: React.ReactNode;
   title: string;
 }) {
-  const { user, logout, activeRole } = useAuth();
+  const { user, logout, activeRole, popup, dismissPopup } = useAuth();
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-  const [popup, setPopup] = useState<PopupNotification | null>(null);
-  const [dismissing, setDismissing] = useState(false);
 
   const navItems = NAV_BY_ROLE[activeRole] ?? STUDENT_NAV;
 
@@ -151,29 +141,6 @@ export default function DashboardShell({
     logout();
   };
 
-  // Check for an active broadcast popup once per dashboard session load.
-  useEffect(() => {
-    if (!user) return;
-    api.get('/notifications/popup')
-      .then((r) => {
-        if (r.data) setPopup(r.data);
-      })
-      .catch(() => {});
-  }, [user]);
-
-  const handleDismissPopup = async () => {
-    if (!popup || dismissing) return;
-    setDismissing(true);
-    try {
-      await api.patch(`/notifications/${popup.id}/read`);
-    } catch {
-      // even if this fails, don't trap the user behind the popup
-    } finally {
-      setPopup(null);
-      setDismissing(false);
-    }
-  };
-
   return (
     <div className="flex min-h-screen bg-[#f5f5f5]">
 
@@ -181,7 +148,7 @@ export default function DashboardShell({
       {popup && (
         <div
           className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 px-4"
-          onClick={handleDismissPopup}
+          onClick={dismissPopup}
         >
           <div
             className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl"
@@ -200,9 +167,8 @@ export default function DashboardShell({
               {popup.body}
             </p>
             <button
-              onClick={handleDismissPopup}
-              disabled={dismissing}
-              className="w-full py-2.5 rounded-xl text-sm font-bold text-white bg-gray-900 hover:bg-gray-800 transition disabled:opacity-60"
+              onClick={dismissPopup}
+              className="w-full py-2.5 rounded-xl text-sm font-bold text-white bg-gray-900 hover:bg-gray-800 transition"
               style={{ fontFamily: "'Space Grotesk', sans-serif" }}
             >
               Got it

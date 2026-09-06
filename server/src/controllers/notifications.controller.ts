@@ -76,7 +76,6 @@ export const getActivePopup = asyncHandler(async (req: Request, res: Response) =
       isPopup: true,
       audience: { in: ['all', levelAudience] },
       popupExpiresAt: { gt: new Date() },
-      reads: { none: { userId } },
     },
     orderBy: { createdAt: 'desc' },
   });
