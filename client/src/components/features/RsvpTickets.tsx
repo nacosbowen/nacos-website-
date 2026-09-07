@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import api from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 
@@ -23,6 +24,53 @@ const CAT_STYLE: Record<string, string> = {
 };
 
 const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5001';
+
+function TicketModal({ ticket, onClose }: { ticket: { event: NacosEvent; code: string }; onClose: () => void }) {
+  return createPortal(
+    <div className="fixed inset-0 z-[100] bg-black/60 flex items-center justify-center p-4"
+      onClick={onClose}>
+      <div className="bg-white rounded-3xl max-w-sm w-full shadow-2xl overflow-hidden"
+        onClick={e => e.stopPropagation()}>
+        <div className="bg-gray-900 px-6 py-8 text-center relative overflow-hidden">
+          <div className="absolute inset-0 opacity-10">
+            <div className="absolute -top-4 -right-4 w-32 h-32 rounded-full border-4 border-yellow-400" />
+            <div className="absolute -bottom-4 -left-4 w-24 h-24 rounded-full border-2 border-yellow-400" />
+          </div>
+          <p className="text-[10px] font-bold text-yellow-400 tracking-widest uppercase mb-2"
+            style={{ fontFamily: "'Space Grotesk', sans-serif" }}>NACOS Official Ticket</p>
+          <p className="text-white text-lg font-black leading-tight" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+            {ticket.event.title}
+          </p>
+          <p className="text-gray-400 text-xs mt-2">
+            {new Date(ticket.event.date).toLocaleDateString('en-NG', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+            {' · '}{new Date(ticket.event.date).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+          </p>
+        </div>
+        <div className="px-6 py-5">
+          <div className="border-t-2 border-dashed border-gray-200 -mx-6 mb-5" />
+          <p className="text-xs text-gray-400 text-center mb-2">Ticket Code</p>
+          <p className="text-xl font-black text-gray-900 text-center tracking-widest"
+            style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{ticket.code}</p>
+          <div className="mt-4 bg-gray-50 rounded-xl p-3">
+            <div className="flex justify-between text-xs text-gray-500">
+              <span>Venue</span><span className="font-semibold text-gray-700">{ticket.event.location || 'TBA'}</span>
+            </div>
+            <div className="flex justify-between text-xs text-gray-500 mt-1.5">
+              <span>Price</span>
+              <span className="font-semibold text-gray-700">
+                {ticket.event.price === 0 ? 'Free' : `₦${ticket.event.price.toLocaleString()}`}
+              </span>
+            </div>
+          </div>
+          <button onClick={onClose}
+            className="mt-5 w-full py-3 rounded-xl bg-gray-900 text-white text-sm font-bold hover:bg-gray-800 transition"
+            style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Done</button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
 
 export default function RsvpTickets() {
   const { isLoading: authLoading } = useAuth();
@@ -83,49 +131,7 @@ export default function RsvpTickets() {
         <p className="text-sm text-gray-400 mt-0.5">RSVP to events and get your digital ticket</p>
       </div>
 
-      {ticket && (
-        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4"
-          onClick={() => setTicket(null)}>
-          <div className="bg-white rounded-3xl max-w-sm w-full shadow-2xl overflow-hidden"
-            onClick={e => e.stopPropagation()}>
-            <div className="bg-gray-900 px-6 py-8 text-center relative overflow-hidden">
-              <div className="absolute inset-0 opacity-10">
-                <div className="absolute -top-4 -right-4 w-32 h-32 rounded-full border-4 border-yellow-400" />
-                <div className="absolute -bottom-4 -left-4 w-24 h-24 rounded-full border-2 border-yellow-400" />
-              </div>
-              <p className="text-[10px] font-bold text-yellow-400 tracking-widest uppercase mb-2"
-                style={{ fontFamily: "'Space Grotesk', sans-serif" }}>NACOS Official Ticket</p>
-              <p className="text-white text-lg font-black leading-tight" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                {ticket.event.title}
-              </p>
-              <p className="text-gray-400 text-xs mt-2">
-                {new Date(ticket.event.date).toLocaleDateString('en-NG', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-                {' · '}{new Date(ticket.event.date).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
-              </p>
-            </div>
-            <div className="px-6 py-5">
-              <div className="border-t-2 border-dashed border-gray-200 -mx-6 mb-5" />
-              <p className="text-xs text-gray-400 text-center mb-2">Ticket Code</p>
-              <p className="text-xl font-black text-gray-900 text-center tracking-widest"
-                style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{ticket.code}</p>
-              <div className="mt-4 bg-gray-50 rounded-xl p-3">
-                <div className="flex justify-between text-xs text-gray-500">
-                  <span>Venue</span><span className="font-semibold text-gray-700">{ticket.event.location || 'TBA'}</span>
-                </div>
-                <div className="flex justify-between text-xs text-gray-500 mt-1.5">
-                  <span>Price</span>
-                  <span className="font-semibold text-gray-700">
-                    {ticket.event.price === 0 ? 'Free' : `₦${ticket.event.price.toLocaleString()}`}
-                  </span>
-                </div>
-              </div>
-              <button onClick={() => setTicket(null)}
-                className="mt-5 w-full py-3 rounded-xl bg-gray-900 text-white text-sm font-bold hover:bg-gray-800 transition"
-                style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Done</button>
-            </div>
-          </div>
-        </div>
-      )}
+      {ticket && <TicketModal ticket={ticket} onClose={() => setTicket(null)} />}
 
       {events.length === 0 ? (
         <div className="bg-white rounded-2xl border border-gray-100 p-14 text-center shadow-[0_2px_4px_rgba(0,0,0,0.04)]">

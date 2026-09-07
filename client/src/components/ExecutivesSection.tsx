@@ -9,17 +9,17 @@ const MAIN_EXECS = [
   { role: 'General Secretary', name: 'Toluwalase Oduyemi', imageUrl: '/executives/toluwalase.jpg' },
   { role: 'Academic Director', name: 'Afonrinwo Fifunmi', imageUrl: '/executives/fifunmi.jpeg' },
   { role: 'Financial Secretary', name: 'Itansanogooluwa Agunloye', imageUrl: '' },
-  { role: 'Welfare Director', name: 'Victoria Asabor', imageUrl: '' },
-  { role: 'PRO 1', name: 'Opemipo Oladiti', imageUrl: '' },
+  { role: 'Welfare Director', name: 'Victoria Asabor', imageUrl: '/executives/victoria.jpg' },
+  { role: 'PRO 1', name: 'Opemipo Oladiti', imageUrl: '/executives/opemipo.jpeg' },
   { role: 'Chief Whip', name: '', imageUrl: '' },
   { role: 'Sports Director (Male)', name: 'Oluwafemi Adesope', imageUrl: '' },
   { role: 'Sports Director (Female)', name: 'Deborah Egenuka', imageUrl: '/executives/deborah.jpeg' },
-  { role: 'Social Director (Male)', name: 'Chijioke David', imageUrl: '' },
+  { role: 'Social Director (Male)', name: 'Chijioke David', imageUrl: '/executives/chijioke.jpg' },
   { role: 'Social Director (Female)', name: 'Oreoluwa Owobamirin', imageUrl: '/executives/ore.jpeg' },
   { role: 'Software Director', name: 'Emmanuel Odofin', imageUrl: '/executives/Emmanuel.jpeg' },
   { role: 'Hardware Director', name: 'Zoe Ayilara', imageUrl: '' },
   { role: 'CS Commissioner', name: 'Tolulope Adegoke', imageUrl: '/executives/tolu.png' },
-  { role: 'SE Commissioner', name: 'Favour Owoyalumo', imageUrl: '' },
+  { role: 'SE Commissioner', name: 'Favour Owoyalumo', imageUrl: '/executives/favour.jpg' },
   { role: 'CYB Commissioner', name: 'Zzim Madaki', imageUrl: '/executives/zzim.jpg' },
   { role: 'IFT Commissioner', name: 'Obaloluwa Waheed', imageUrl: '/executives/oba.png' },
   { role: 'Asst. General Secretary', name: 'Temiloluwa Daramola', imageUrl: '/executives/temi.jpeg' },
@@ -30,7 +30,7 @@ const MAIN_EXECS = [
 
 const BOTTOM_EXECS = [
   { role: 'Asst. Hardware Director', name: '', imageUrl: '' },
-  { role: 'PRO 2', name: '', imageUrl: '' },
+  { role: 'PRO 2', name: 'Davids Isaac', imageUrl: '' },
 ];
 
 function ExecCard({
