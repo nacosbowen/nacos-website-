@@ -1,7 +1,7 @@
 import Image from 'next/image';
 
 const TOP_EXECS = [
-  { role: 'President', name: 'Eniola Somoye', imageUrl: '' },
+  { role: 'President', name: 'Eniola Somoye', imageUrl: '/executives/eniola.png' },
   { role: 'Vice President', name: 'Ayomikun Akinade', imageUrl: '/executives/Ayomikun.jpeg' },
 ];
 
