@@ -6,12 +6,12 @@ const TOP_EXECS = [
 ];
 
 const MAIN_EXECS = [
-  { role: 'General Secretary', name: 'Toluwalase Oduyemi', imageUrl: '/executives/toluwalase.jpg' },
+  { role: 'General Secretary', name: 'Toluwalase Oduyemi', imageUrl: '/executives/toluwalase.jpeg' },
   { role: 'Academic Director', name: 'Afonrinwo Fifunmi', imageUrl: '/executives/fifunmi.jpeg' },
   { role: 'Financial Secretary', name: 'Itansanogooluwa Agunloye', imageUrl: '' },
   { role: 'Welfare Director', name: 'Victoria Asabor', imageUrl: '/executives/victoria.jpg' },
-  { role: 'PRO 1', name: 'Opemipo Oladiti', imageUrl: '/executives/opemipo.jpeg' },
-  { role: 'Chief Whip', name: '', imageUrl: '' },
+  { role: 'PRO 1', name: 'Opemipo Oladiti', imageUrl: '/executives/opemipo.png' },
+  { role: 'Chief Whip', name: 'Paul Adedeji', imageUrl: '/executives/paul.png' },
   { role: 'Sports Director (Male)', name: 'Oluwafemi Adesope', imageUrl: '' },
   { role: 'Sports Director (Female)', name: 'Deborah Egenuka', imageUrl: '/executives/deborah.jpeg' },
   { role: 'Social Director (Male)', name: 'Chijioke David', imageUrl: '/executives/chijioke.jpg' },
@@ -22,14 +22,15 @@ const MAIN_EXECS = [
   { role: 'SE Commissioner', name: 'Favour Owoyalumo', imageUrl: '/executives/favour.jpg' },
   { role: 'CYB Commissioner', name: 'Zzim Madaki', imageUrl: '/executives/zzim.jpg' },
   { role: 'IFT Commissioner', name: 'Obaloluwa Waheed', imageUrl: '/executives/oba.png' },
+  { role: 'Alumni Officer', name: 'Mgbe Louisa', imageUrl: '/executives/louisa.jpeg' },
   { role: 'Asst. General Secretary', name: 'Temiloluwa Daramola', imageUrl: '/executives/temi.jpeg' },
   { role: 'Asst. Welfare Director', name: 'Benedicta Boardman', imageUrl: '/executives/benedicta.jpeg' },
   { role: 'Asst. Academic Director', name: 'Bright Lawal', imageUrl: '' },
   { role: 'Asst. Software Director', name: 'Boluwatito Akinnuoye', imageUrl: '/executives/tito.jpeg' },
+  { role: 'Asst. Hardware Director', name: '', imageUrl: '' },
 ];
 
 const BOTTOM_EXECS = [
-  { role: 'Asst. Hardware Director', name: '', imageUrl: '' },
   { role: 'PRO 2', name: 'Davids Isaac', imageUrl: '' },
 ];
 
@@ -145,10 +146,10 @@ export default function ExecutivesSection() {
           ))}
         </div>
 
-        {/* Last row — 2 cards centered */}
-        <div className="flex justify-center gap-8">
+        {/* Last row — single card centered */}
+        <div className="flex justify-center">
           {BOTTOM_EXECS.map((exec) => (
-            <div key={exec.role} className="w-[calc(25%-1rem)]">
+            <div key={exec.role} className="w-36 sm:w-48 lg:w-60">
               <ExecCard role={exec.role} name={exec.name} imageUrl={exec.imageUrl} />
             </div>
           ))}
