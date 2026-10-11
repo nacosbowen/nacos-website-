@@ -22,6 +22,7 @@ import examRoutes from './routes/exam.routes';
 import archiveRoutes from './routes/archive.routes';
 
 const app = express();
+app.set('trust proxy', 1);
 const server = http.createServer(app);
 
 export const io = new SocketServer(server, {

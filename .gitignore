@@ -5,3 +5,4 @@ node_modules/
 .next/
 uploads/
 dist/
+server/prisma/students.private.ts

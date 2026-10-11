@@ -3,6 +3,11 @@ import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
+type Student = { fullName: string; matricNumber: string; level: number };
+
+// The student list lives in a gitignored file so real names never reach the public repo
+const { students } = require('./students.private') as { students: Student[] };
+
 const departments = [
   { name: 'Computer Science', code: 'CSC' },
   { name: 'Software Engineering', code: 'SEN' },
@@ -13,310 +18,20 @@ const departments = [
 const roles = ['student', 'course_rep', 'executive', 'admin'] as const;
 
 /// BU23 = 400 level | BU24 = 300 level | BU25 = 200 level
-const students: { fullName: string; matricNumber: string; level: number }[] = [
 
-      // Software Engineering (SEN)
-    { fullName: 'Adeoye-Ajala Peace Kehinde', matricNumber: 'BU23SEN1001', level: 400 },
-    { fullName: 'Gbokoyi Gbolahan Enoch', matricNumber: 'BU23SEN1002', level: 400 },
-    { fullName: 'Izuchukwu Chimnomnso Benjamin', matricNumber: 'BU23SEN1003', level: 400 },
-    { fullName: 'Ogunkoya Alfred Ireloluwa', matricNumber: 'BU23SEN1004', level: 400 },
-    { fullName: 'Abdul David Damilola', matricNumber: 'BU23SEN1005', level: 400 },
-    { fullName: 'Omotayo Oluwasina', matricNumber: 'BU23SEN1006', level: 400 },
-    { fullName: 'Owoyalumo Favour Olukorede', matricNumber: 'BU23SEN1007', level: 400 },
-    { fullName: 'Ololajulo Fortunatus Oyinlola', matricNumber: 'BU23SEN1008', level: 400 },
-    { fullName: 'Juga Joshua Emeliem', matricNumber: 'BU23SEN1009', level: 400 },
-    { fullName: 'Adesope Foyinsayomi Emmanuel', matricNumber: 'BU23SEN1010', level: 400 },
-    { fullName: 'Jonah Uzoma Maxwell', matricNumber: 'BU23SEN1011', level: 400 },
-    { fullName: 'Bright-Worlu David Chimenem', matricNumber: 'BU23SEN1012', level: 400 },
-    { fullName: 'Odiaka-Efam Chukwunoyenim', matricNumber: 'BU23SEN1013', level: 400 },
-    { fullName: 'Odofin Emmanuel Oluwatobiloba', matricNumber: 'BU23SEN1014', level: 400 },
-    { fullName: 'Oluwatobiloba Braimoh', matricNumber: 'BU23SEN1015', level: 400 },
-    { fullName: 'Olajide Paul Taiwo', matricNumber: 'BU23SEN1016', level: 400 },
-    { fullName: 'Okafor Chukwuebuka Christopher', matricNumber: 'BU23SEN1017', level: 400 },
-    { fullName: 'Daniel Olayinka', matricNumber: 'BU23SEN1018', level: 400 },
-    { fullName: 'Awak Duonyi', matricNumber: 'BU23SEN1019', level: 400 },
-    { fullName: 'Authority Francis', matricNumber: 'BU23SEN1020', level: 400 },
-    { fullName: 'Ofeoritse Gift Ken-Kayoh', matricNumber: 'BU23SEN1021', level: 400 },
-    { fullName: 'Adakomola Oluwamurewa', matricNumber: 'BU23SEN1022', level: 400 },
-    { fullName: 'Bojor Oritsetimeyin David', matricNumber: 'BU23SEN1023', level: 400 },
-    { fullName: 'Olayonu Boluwatife', matricNumber: 'BU23SEN1024', level: 400 },
-    { fullName: 'Umbu Dienipreye', matricNumber: 'BU23SEN1025', level: 400 },
-    { fullName: 'Michael Adekunle Kayode', matricNumber: 'BU23SEN1026', level: 400 },
-    { fullName: 'Emiko Oritserenemi Oritselatotasen', matricNumber: 'BU23SEN1028', level: 400 },
-    { fullName: 'Anemikaye Boma', matricNumber: 'BU23SEN1029', level: 400 },
-    { fullName: 'Somoaina Timilehin', matricNumber: 'BU23SEN1030', level: 400 },
-    { fullName: 'Chukwu Sorochi Nkemka', matricNumber: 'BU23SEN1031', level: 400 },
-    { fullName: 'Nzedinma Chiemezie Ifeanyichukwu', matricNumber: 'BU23SEN1032', level: 400 },
-    { fullName: 'Chijioke David Chiagbanwe', matricNumber: 'BU23SEN1033', level: 400 },
-    { fullName: 'Onibokun Obawole', matricNumber: 'BU23SEN1034', level: 400 },
-    { fullName: 'Olutekunbi Emmanuel', matricNumber: 'BU23SEN1035', level: 400 },
-    { fullName: 'Okoli Ifeatu', matricNumber: 'BU23SEN1036', level: 400 },
-    { fullName: 'Saviour Solomon Udoibok', matricNumber: 'BU23SEN1037', level: 400 },
-    { fullName: 'Adetutu Oluwaseyifunmimoyosese', matricNumber: 'BU23SEN1038', level: 400 },
-    { fullName: 'Adeyemi Oluwaferanmi', matricNumber: 'BU23SEN1039', level: 400 },
-    { fullName: 'Unachukwu Ebube', matricNumber: 'BU23SEN1040', level: 400 },
-    { fullName: 'Ogundipe Peter Temiloluwa', matricNumber: 'BU23SEN1041', level: 400 },
-    { fullName: 'Omowaye Ayotomi Babajide', matricNumber: 'BU23SEN1042', level: 400 },
-    { fullName: 'Lemon Emmanuel', matricNumber: 'BU23SEN1043', level: 400 },
-    { fullName: 'Adeyemo Mosope', matricNumber: 'BU23SEN1044', level: 400 },
-    { fullName: 'Ayinde Temiloluwa', matricNumber: 'BU23SEN1045', level: 400 },
-    { fullName: 'Adeonojobi Richard Adeniyi', matricNumber: 'BU23SEN1046', level: 400 },
-    { fullName: 'Aladesida Oluwateniola', matricNumber: 'BU23SEN1047', level: 400 },
-    { fullName: 'Feyisetan Olaoluwa', matricNumber: 'BU23SEN1048', level: 400 },
-    { fullName: 'Amode Jedidiah Obaloluwa', matricNumber: 'BU23SEN1049', level: 400 },
-    { fullName: 'Feyibunmi Akinkunmi Daniel', matricNumber: 'BU23SEN1050', level: 400 },
-    { fullName: 'Eyo Godswill Udeme', matricNumber: 'BU23SEN1051', level: 400 },
-    { fullName: 'Yebi Samuel Favour', matricNumber: 'BU23SEN1052', level: 400 },
-    { fullName: 'Ashiri Samuel', matricNumber: 'BU23SEN1053', level: 400 },
-    { fullName: 'Vincent David King', matricNumber: 'BU23SEN1054', level: 400 },
-    { fullName: 'Ijimakin Tolulope', matricNumber: 'BU23SEN1055', level: 400 },
-    { fullName: 'Marcel Binatari Okara', matricNumber: 'BU23SEN1056', level: 400 },
-    { fullName: 'Adedigba Adeayo Joshua-Ayokunnu', matricNumber: 'BU23SEN1057', level: 400 },
-    { fullName: 'Oyeniyi Samuel Anjolaoluwa', matricNumber: 'BU23SEN1058', level: 400 },
-    { fullName: 'Ebikagboro Douye Yuletide', matricNumber: 'BU23SEN1059', level: 400 },
-    { fullName: 'Chidi-Adiele Kamsiyochukwu', matricNumber: 'BU23SEN1060', level: 400 },
-    { fullName: 'Ajani Sarah O', matricNumber: 'BU23SEN1061', level: 400 },
-    { fullName: 'Popoola David', matricNumber: 'BU23SEN1062', level: 400 },
-    { fullName: 'Adekanmbi Nelson Obaloluwa', matricNumber: 'BU24SEN2001', level: 400 },
-    { fullName: 'Oladipo Eyitayo Praise', matricNumber: 'BU24SEN2002', level: 400 },
-    { fullName: 'Imhontu John Onyekachi', matricNumber: 'BU24SEN2003', level: 400 },
-    { fullName: 'Somoye Eniola Olayinka', matricNumber: 'BU24SEN2004', level: 400 },
-    { fullName: 'Udensi Ikechukwu', matricNumber: 'BU24SEN2005', level: 400 },
-    { fullName: 'Akinsola Isaac', matricNumber: 'BU24SEN2006', level: 400 },
-    { fullName: 'Agunloye Itansanogooluwa', matricNumber: 'BU24SEN2007', level: 400 },
-
-    // Computer Science (CSC)
-    { fullName: 'Ogunnaike Opemipo Daniel', matricNumber: 'BU23CSC1001', level: 400 },
-    { fullName: 'Akin-Akala Oluwadamilola James', matricNumber: 'BU23CSC1002', level: 400 },
-    { fullName: 'Madu Victoria Chidinma', matricNumber: 'BU23CSC1003', level: 400 },
-    { fullName: 'Alli Anjolaoluwa David', matricNumber: 'BU23CSC1004', level: 400 },
-    { fullName: 'Ojo Daniel Toluwani', matricNumber: 'BU23CSC1005', level: 400 },
-    { fullName: 'Adesiyan Darasimi Olanrewaju', matricNumber: 'BU23CSC1006', level: 400 },
-    { fullName: 'Afolabi Ayodeji D.', matricNumber: 'BU23CSC1007', level: 400 },
-    { fullName: 'Adeogun Timothy Olamilekan', matricNumber: 'BU23CSC1008', level: 400 },
-    { fullName: 'Ayoola Cecilia Omowunmi', matricNumber: 'BU23CSC1009', level: 400 },
-    { fullName: 'Nnadi Chidubem Micheal', matricNumber: 'BU23CSC1010', level: 400 },
-    { fullName: 'Afonrinwo Oluwalofifunmi', matricNumber: 'BU23CSC1011', level: 400 },
-    { fullName: 'Peculiar Kuroloja', matricNumber: 'BU23CSC1012', level: 400 },
-    { fullName: 'Omotoso Emmanuel Ifedayo', matricNumber: 'BU23CSC1013', level: 400 },
-    { fullName: 'Adegoke Precious', matricNumber: 'BU23CSC1014', level: 400 },
-    { fullName: 'Akinkunmi Jordan', matricNumber: 'BU23CSC1015', level: 400 },
-    { fullName: 'Oladiran Abdul-Haadee', matricNumber: 'BU23CSC1016', level: 400 },
-    { fullName: 'Osewa Emmanuel Omorodion', matricNumber: 'BU23CSC1017', level: 400 },
-    { fullName: 'Olaniyan Olawale Michael', matricNumber: 'BU23CSC1018', level: 400 },
-    { fullName: 'Ebuka Ofonegbu', matricNumber: 'BU23CSC1019', level: 400 },
-    { fullName: 'Oredegbe Testimony', matricNumber: 'BU23CSC1020', level: 400 },
-    { fullName: 'Ogunmola Ayomide Olamilekan', matricNumber: 'BU23CSC1021', level: 400 },
-    { fullName: 'Jubril Omotola Precious', matricNumber: 'BU23CSC1022', level: 400 },
-    { fullName: 'Taiwo Anjolaoluwa Silas', matricNumber: 'BU23CSC1023', level: 400 },
-    { fullName: 'Ekuayovwe Joshua', matricNumber: 'BU23CSC1024', level: 400 },
-    { fullName: 'Sobunkola Oluwatemilorun', matricNumber: 'BU23CSC1025', level: 400 },
-    { fullName: 'Taiwo Tolulope Daniel', matricNumber: 'BU23CSC1026', level: 400 },
-    { fullName: 'Albert-Talabi Oluwatobi', matricNumber: 'BU23CSC1027', level: 400 },
-    { fullName: 'Bobade Oluwatofunmi', matricNumber: 'BU23CSC1028', level: 400 },
-    { fullName: 'Bilewu Oluwasemilore Daniel', matricNumber: 'BU23CSC1029', level: 400 },
-    { fullName: 'Ibrahim Iretioluwa Kemisola', matricNumber: 'BU23CSC1031', level: 400 },
-    { fullName: 'Chidolue Ebube Samuel', matricNumber: 'BU23CSC1032', level: 400 },
-    { fullName: 'Arowojolu Abimbola', matricNumber: 'BU23CSC1033', level: 400 },
-    { fullName: 'Omotayo Ooreoluwa Mercy', matricNumber: 'BU23CSC1034', level: 400 },
-    { fullName: 'Alabi David Oyedepo', matricNumber: 'BU23CSC1035', level: 400 },
-    { fullName: 'Dopamu Blossom', matricNumber: 'BU23CSC1036', level: 400 },
-    { fullName: 'Anyibema Chiamaka', matricNumber: 'BU23CSC1037', level: 400 },
-    { fullName: 'Oladiti Opemipo Ore-Oluwa', matricNumber: 'BU23CSC1038', level: 400 },
-    { fullName: 'Ayinde Olagoke Peter', matricNumber: 'BU23CSC1039', level: 400 },
-    { fullName: 'Adegbola Muyiwa Adedapo', matricNumber: 'BU23CSC1040', level: 400 },
-    { fullName: 'Ifionu Chisom Bryan', matricNumber: 'BU23CSC1041', level: 400 },
-    { fullName: 'Owoyomi Rosmond', matricNumber: 'BU23CSC1043', level: 400 },
-    { fullName: 'Olowolehin Gabriel Olanrewaju', matricNumber: 'BU23CSC1044', level: 400 },
-    { fullName: 'Omofoye Gloria', matricNumber: 'BU23CSC1045', level: 400 },
-    { fullName: 'Ilori Righteous Olamide', matricNumber: 'BU23CSC1046', level: 400 },
-    { fullName: 'Oladipo Timilehin Obaloluwa', matricNumber: 'BU23CSC1047', level: 400 },
-    { fullName: "Olorunfemi God's Dominion", matricNumber: 'BU23CSC1048', level: 400 },
-    { fullName: 'Olajide Peter Kehinde', matricNumber: 'BU23CSC1049', level: 400 },
-    { fullName: 'Adegboyega Oluwabukola Favour', matricNumber: 'BU23CSC1050', level: 400 },
-    { fullName: 'Ayegbusi Oluwanifemi', matricNumber: 'BU23CSC1051', level: 400 },
-    { fullName: 'Owoade Ayowale', matricNumber: 'BU23CSC1052', level: 400 },
-    { fullName: 'Sodiq Olayiwola Oluwatimilehin', matricNumber: 'BU23CSC1053', level: 400 },
-    { fullName: 'Sulola Kanyinsola', matricNumber: 'BU23CSC1054', level: 400 },
-    { fullName: 'Adeyanju Oluwabamise', matricNumber: 'BU23CSC1056', level: 400 },
-    { fullName: 'Ogunyebi Monisola Felicia', matricNumber: 'BU23CSC1057', level: 400 },
-    { fullName: 'Olaleye Tofarati Emmanuel', matricNumber: 'BU23CSC1058', level: 400 },
-    { fullName: "God'swill Adekanmi Ayodeji", matricNumber: 'BU23CSC1059', level: 400 },
-    { fullName: 'Nathanael Luther Lucky', matricNumber: 'BU23CSC1060', level: 400 },
-    { fullName: 'Akinsehinwa Enioluwa Olamide', matricNumber: 'BU23CSC1062', level: 400 },
-    { fullName: 'Ayodele Oluwaseyi Michael', matricNumber: 'BU23CSC1063', level: 400 },
-    { fullName: 'Oluwafemi Adesope', matricNumber: 'BU23CSC1064', level: 400 },
-    { fullName: 'Unmadu Soluchukwu', matricNumber: 'BU23CSC1065', level: 400 },
-    { fullName: 'Azeez Oluwadamilare', matricNumber: 'BU23CSC1066', level: 400 },
-    { fullName: 'Olukayode Anuoluwapo Diekolomo', matricNumber: 'BU23CSC1067', level: 400 },
-    { fullName: 'Akinloye Olumide', matricNumber: 'BU23CSC1068', level: 400 },
-    { fullName: 'Adekola Olaoluwa', matricNumber: 'BU23CSC1069', level: 400 },
-    { fullName: 'Josiah Aniebiet', matricNumber: 'BU23CSC1070', level: 400 },
-    { fullName: 'Oghenemaro Egbodo', matricNumber: 'BU23CSC1071', level: 400 },
-    { fullName: 'Bello Oluwatosin Hannah', matricNumber: 'BU23CSC1072', level: 400 },
-    { fullName: 'Kareem Umar Adebayo', matricNumber: 'BU23CSC1073', level: 400 },
-    { fullName: 'Toluwalase Elijah Olufemi', matricNumber: 'BU23CSC1074', level: 400 },
-    { fullName: 'Bakare Aishat Omobolaji', matricNumber: 'BU23CSC1075', level: 400 },
-    { fullName: 'Osunde Jesse', matricNumber: 'BU23CSC1076', level: 400 },
-    { fullName: 'Owoeye Olamide', matricNumber: 'BU23CSC1077', level: 400 },
-    { fullName: 'Ugochukwu Onwuegbuzie', matricNumber: 'BU23CSC1078', level: 400 },
-    { fullName: 'Oyeniyi Oluwatobiloba Peter', matricNumber: 'BU23CSC1079', level: 400 },
-    { fullName: 'Opara Christine', matricNumber: 'BU23CSC1080', level: 400 },
-    { fullName: 'Komolafe Ayomide Samuel', matricNumber: 'BU23CSC1082', level: 400 },
-    { fullName: 'Chukwu Divine Chiemerie', matricNumber: 'BU23CSC1083', level: 400 },
-    { fullName: 'Adeniran David', matricNumber: 'BU23CSC1084', level: 400 },
-    { fullName: 'Adedeji Ayomide Paul', matricNumber: 'BU23CSC1085', level: 400 },
-    { fullName: 'Arebisola Ibukunoluwa Michael', matricNumber: 'BU23CSC1086', level: 400 },
-    { fullName: 'Adegoke Tolulope Samuel', matricNumber: 'BU23CSC1087', level: 400 },
-    { fullName: 'Asabor Ngozi Victoria', matricNumber: 'BU23CSC1088', level: 400 },
-    { fullName: 'Ayilara Zoe', matricNumber: 'BU23CSC1089', level: 400 },
-    { fullName: 'Owobamirin Oreoluwa', matricNumber: 'BU23CSC1090', level: 400 },
-    { fullName: 'Olaremu Daniel Oluwanifesimi', matricNumber: 'BU23CSC1091', level: 400 },
-    { fullName: 'Stephanie Onyedineke', matricNumber: 'BU23CSC1092', level: 400 },
-    { fullName: 'Okechukwu Chiedozie Samuel', matricNumber: 'BU23CSC1093', level: 400 },
-    { fullName: 'Oladele Ridwan Olayinka', matricNumber: 'BU23CSC1094', level: 400 },
-    { fullName: 'Opeola Ayotomiwa John', matricNumber: 'BU23CSC1095', level: 400 },
-    { fullName: 'Ogiogwa Patrick-Stephen', matricNumber: 'BU23CSC1096', level: 400 },
-    { fullName: 'Akinyemi Stephen Shinaayomi', matricNumber: 'BU23CSC1097', level: 400 },
-    { fullName: 'Joseph Tinuola', matricNumber: 'BU23CSC1098', level: 400 },
-    { fullName: 'Olaoye Isaac Jesutomisin', matricNumber: 'BU23CSC1099', level: 400 },
-    { fullName: 'Israel Aladesanmi', matricNumber: 'BU23CSC1100', level: 400 },
-    { fullName: 'Oladejo Victor Obanijesu', matricNumber: 'BU23CSC1101', level: 400 },
-    { fullName: 'Odelowo Eriolaoluwa Arabel', matricNumber: 'BU23CSC1102', level: 400 },
-    { fullName: 'Kalu Stephen', matricNumber: 'BU23CSC1103', level: 400 },
-    { fullName: 'Dapo-Ikupolati Oluwatimileyin', matricNumber: 'BU23CSC1104', level: 400 },
-    { fullName: 'Elewa Richard Chizi', matricNumber: 'BU23CSC1105', level: 400 },
-    { fullName: 'Oyailo Michael Eromosele', matricNumber: 'BU23CSC1106', level: 400 },
-    { fullName: 'Afolabi David Inioluwa', matricNumber: 'BU23CSC1107', level: 400 },
-    { fullName: 'Ajiboso Toluwanimi', matricNumber: 'BU23CSC1108', level: 400 },
-    { fullName: 'Temitope Gerald Akinwale', matricNumber: 'BU23CSC1109', level: 400 },
-    { fullName: 'Dominic-James Dominion Aroaye', matricNumber: 'BU23CSC1110', level: 400 },
-    { fullName: 'Fortnat Caleb', matricNumber: 'BU23CSC1111', level: 400 },
-    { fullName: 'Adeleye Ifeoluwakiishi', matricNumber: 'BU23CSC1112', level: 400 },
-    { fullName: 'Praise Mokogwu', matricNumber: 'BU23CSC1113', level: 400 },
-    { fullName: 'Adepetu Oluwatobiloba', matricNumber: 'BU23CSC1114', level: 400 },
-    { fullName: 'Arah David Praise', matricNumber: 'BU23CSC1115', level: 400 },
-    { fullName: 'Akingbade Abdullateef Olajide', matricNumber: 'BU23CSC1116', level: 400 },
-    { fullName: 'Akerele Ayokanmi Samuel', matricNumber: 'BU23CSC1117', level: 400 },
-    { fullName: 'Iyanam-Uqua Saviour', matricNumber: 'BU23CSC1118', level: 400 },
-    { fullName: 'Obioru Temisanren Christian', matricNumber: 'BU23CSC1119', level: 400 },
-    { fullName: 'Demebi-Izirimi Dearest', matricNumber: 'BU23CSC1120', level: 400 },
-    { fullName: 'Daniel Ughwerefe Ewomazino', matricNumber: 'BU23CSC1121', level: 400 },
-    { fullName: 'Omoregha Adesina Eyimofe', matricNumber: 'BU23CSC1122', level: 400 },
-    { fullName: 'Ojogbede-Adeniyi Mojereola Bola', matricNumber: 'BU23CSC1123', level: 400 },
-    { fullName: 'Abass Alameen Olasubomi', matricNumber: 'BU23CSC1124', level: 400 },
-    { fullName: 'Atoki Richard', matricNumber: 'BU23CSC1125', level: 400 },
-    { fullName: 'Olajide Olamiposi', matricNumber: 'BU23CSC1126', level: 400 },
-    { fullName: 'Olayiwola Olajire Tomilola', matricNumber: 'BU23CSC1127', level: 400 },
-    { fullName: 'Humbe Emmanuel Toluwani', matricNumber: 'BU23CSC1128', level: 400 },
-    { fullName: 'Amusan Oluwatomilola David', matricNumber: 'BU23CSC1129', level: 400 },
-    { fullName: 'Fashola Kayode', matricNumber: 'BU23CSC1130', level: 400 },
-    { fullName: 'Toluwalase Oduyemi', matricNumber: 'BU23CSC1131', level: 400 },
-    { fullName: 'Ovie-Ufuoma Hector', matricNumber: 'BU23CSC1132', level: 400 },
-    { fullName: 'Kwembeh Tertsea Daniel', matricNumber: 'BU23CSC1133', level: 400 },
-    { fullName: 'Obajomiloju Akinwande', matricNumber: 'BU23CSC1134', level: 400 },
-    { fullName: 'Kumoye Wisdom', matricNumber: 'BU23CSC1135', level: 400 },
-    { fullName: 'Samuel ThankGod Ayooluwa', matricNumber: 'BU23CSC1136', level: 400 },
-    { fullName: 'Obayemi Oluwasogo', matricNumber: 'BU23CSC1137', level: 400 },
-    { fullName: 'Adegoke Feranmi', matricNumber: 'BU23CSC1138', level: 400 },
-    { fullName: 'David Chiagoziem Akpata', matricNumber: 'BU23CSC1139', level: 400 },
-    { fullName: 'Towobola Oreofe', matricNumber: 'BU23CSC1140', level: 400 },
-    { fullName: 'Olayanju Glory Anuoluwa', matricNumber: 'BU23CSC1141', level: 400 },
-    { fullName: 'Eric Lashom', matricNumber: 'BU23CSC1142', level: 400 },
-    { fullName: 'Akinrinde Akinkunmi Afeez', matricNumber: 'BU23CSC1143', level: 400 },
-    { fullName: 'Ugomsinachi Ohazurume Innocent', matricNumber: 'BU23CSC1144', level: 400 },
-    { fullName: 'Boluwatife Omotosho', matricNumber: 'BU23CSC1145', level: 400 },
-    { fullName: 'Johnmary Chukwuka Obi', matricNumber: 'BU23CSC1146', level: 400 },
-    { fullName: 'Ovuru Douye David', matricNumber: 'BU23CSC1148', level: 400 },
-    { fullName: 'Mgbe Louisa Rehyara', matricNumber: 'BU23CSC1149', level: 400 },
-    { fullName: 'Oladapo Oluwatobiloba', matricNumber: 'BU23CSC1150', level: 400 },
-    { fullName: 'Ayobami Oluwapamilerinayo Omotayo', matricNumber: 'BU23CSC1151', level: 400 },
-    { fullName: 'Franklyn Authority', matricNumber: 'BU23CSC1152', level: 400 },
-    { fullName: 'Dare Temitope', matricNumber: 'BU23CSC1153', level: 400 },
-    { fullName: 'Omoleye Feyisola Mercy', matricNumber: 'BU23CSC1154', level: 400 },
-    { fullName: 'Araoye Praise Omoaregba', matricNumber: 'BU23CSC1155', level: 400 },
-    { fullName: 'Ibezim Precious Kosisochukwu', matricNumber: 'BU23CSC1156', level: 400 },
-    { fullName: 'Chikamso Xavier Azie', matricNumber: 'BU23CSC1157', level: 400 },
-    { fullName: 'Sulaimon Maliq', matricNumber: 'BU23CSC1158', level: 400 },
-    { fullName: 'Adeleke Adedayo', matricNumber: 'BU23CSC1159', level: 400 },
-    { fullName: 'Adekunle David', matricNumber: 'BU23CSC1160', level: 400 },
-    { fullName: 'Enoch Adediran', matricNumber: 'BU23CSC1161', level: 400 },
-    { fullName: 'Familoyo Tewogbola David', matricNumber: 'BU23CSC1162', level: 400 },
-    { fullName: 'Adeeko Ademileka Ademiposi', matricNumber: 'BU23CSC1163', level: 400 },
-    { fullName: 'Obari-Ajima Emmanuel Bellor', matricNumber: 'BU23CSC1164', level: 400 },
-    { fullName: 'Obafemi Fadeyibi', matricNumber: 'BU23CSC1165', level: 400 },
-    { fullName: 'Udoh Samuel Monday', matricNumber: 'BU23CSC1166', level: 400 },
-    { fullName: 'Olaniyan Olaoluwa Blessing', matricNumber: 'BU23CSC1167', level: 400 },
-    { fullName: 'Abu Olumide Emmanuel', matricNumber: 'BU23CSC1168', level: 400 },
-    { fullName: 'Adedeji Abdulgafar', matricNumber: 'BU23CSC1169', level: 400 },
-    { fullName: 'Ademiloluwa Adewoyin', matricNumber: 'BU23CSC1170', level: 400 },
-    { fullName: 'Adedoyin Daniel Temiloluwa', matricNumber: 'BU23CSC1171', level: 400 },
-    { fullName: 'Wonah Goodness', matricNumber: 'BU23CSC1172', level: 400 },
-    { fullName: 'Nyahama Gibeon', matricNumber: 'BU23CSC1173', level: 400 },
-    { fullName: 'Austin-Wesey Dakuri Brian', matricNumber: 'BU23CSC1174', level: 400 },
-    { fullName: 'Akorede Akande David', matricNumber: 'BU23CSC1176', level: 400 },
-    { fullName: 'Ogunyale Testimony Victor', matricNumber: 'BU23CSC1177', level: 400 },
-    { fullName: 'Sam-Marcus Jonathan', matricNumber: 'BU23CSC1178', level: 400 },
-    { fullName: 'Olaniyi Olubusola Anuoluwapo', matricNumber: 'BU24CSC2001', level: 400 },
-    { fullName: 'Akin-Alabi Moyosolaoluwa', matricNumber: 'BU24CSC2002', level: 400 },
-    { fullName: 'Adeiga Precious Oreoluwa', matricNumber: 'BU24CSC2003', level: 400 },
-    { fullName: 'Ajewole Eniola Mary', matricNumber: 'BU24CSC2004', level: 400 },
-    { fullName: 'Alli Marvellous Ayomiposi', matricNumber: 'BU24CSC2005', level: 400 },
-    { fullName: 'Falolu Victor Bamidele', matricNumber: 'BU24CSC2006', level: 400 },
-    { fullName: 'Olubanjo Jeremiah', matricNumber: 'BU24CSC2007', level: 400 },
-
-    // Cyber Security (CYB)
-    { fullName: 'Akinade Ayomikun', matricNumber: 'BU23CYB1001', level: 400 },
-    { fullName: 'Olusola Olamide', matricNumber: 'BU23CYB1002', level: 400 },
-    { fullName: 'Moses Daniel', matricNumber: 'BU23CYB1003', level: 400 },
-    { fullName: 'Akindemowo Joshua', matricNumber: 'BU23CYB1004', level: 400 },
-    { fullName: 'Omolanbe Victor', matricNumber: 'BU23CYB1005', level: 400 },
-    { fullName: 'Awotoyinbo Emmanuel', matricNumber: 'BU23CYB1006', level: 400 },
-    { fullName: 'Ayinde Paul Olaoluwa', matricNumber: 'BU23CYB1007', level: 400 },
-    { fullName: 'Obisesan Adebayo Jesse', matricNumber: 'BU23CYB1008', level: 400 },
-    { fullName: 'Sanusi-Agbabiaka Eyitayo', matricNumber: 'BU23CYB1009', level: 400 },
-    { fullName: 'Madaki Zzim Meshach', matricNumber: 'BU23CYB1010', level: 400 },
-    { fullName: 'Esho Olamilekan', matricNumber: 'BU23CYB1011', level: 400 },
-    { fullName: 'Akanbi Goodnews', matricNumber: 'BU23CYB1012', level: 400 },
-    { fullName: 'Ajayi Moyinoluwa Noah', matricNumber: 'BU23CYB1013', level: 400 },
-    { fullName: 'Itsueli Osiorumua', matricNumber: 'BU23CYB1014', level: 400 },
-    { fullName: 'Akinsaya Omotokunbo', matricNumber: 'BU23CYB1015', level: 400 },
-    { fullName: 'Egenuka Deborah', matricNumber: 'BU23CYB1016', level: 400 },
-    { fullName: 'Oyegbile Oladipupo', matricNumber: 'BU23CYB1017', level: 400 },
-    { fullName: 'Adebola Fale Omoromola', matricNumber: 'BU23CYB1018', level: 400 },
-    { fullName: 'Egbo Prosper', matricNumber: 'BU23CYB1019', level: 400 },
-    { fullName: 'Avoseh Sewanu Richard', matricNumber: 'BU23CYB1020', level: 400 },
-    { fullName: 'Ajao Samuel Ayotunde', matricNumber: 'BU23CYB1022', level: 400 },
-    { fullName: 'Keshinro Segun', matricNumber: 'BU23CYB1023', level: 400 },
-    { fullName: 'Thomas Covenant', matricNumber: 'BU23CYB1024', level: 400 },
-    { fullName: 'Fabamise Damilola', matricNumber: 'BU23CYB1025', level: 400 },
-    { fullName: 'Ibeneme Chidi Frank', matricNumber: 'BU24CYB2001', level: 400 },
-    { fullName: 'Ogubiyi Oluwatimileyin Moses', matricNumber: 'BU24CYB2002', level: 400 },
-
-    // Information Technology (IFT)
-    { fullName: 'Dagunduro Olawale', matricNumber: 'BU23IFT1003', level: 400 },
-    { fullName: 'Olisagulu Charles', matricNumber: 'BU23IFT1009', level: 400 },
-    { fullName: 'Akubueze Nneoma', matricNumber: 'BU23IFT1006', level: 400 },
-    { fullName: 'Peniel Opubo Peniel', matricNumber: 'BU23IFT1010', level: 400 },
-    { fullName: 'Danmola Abidemi', matricNumber: 'BU23IFT1004', level: 400 },
-    { fullName: 'Imafidon Benjamin George', matricNumber: 'BU23IFT1007', level: 400 },
-    { fullName: 'Muoghalu Praise', matricNumber: 'BU23IFT1008', level: 400 },
-    { fullName: 'Adesina Eniola', matricNumber: 'BU23IFT2001', level: 400 },
-    { fullName: 'Waheed Obaloluwa', matricNumber: 'BU23IFT1002', level: 400 },
-    { fullName: 'Oladele-Ojo Folasewa', matricNumber: 'BU23IFT1005', level: 400 },
-    { fullName: 'Afolabi David', matricNumber: 'BU23IFT1011', level: 400 },
-
-];
 
 const adminUser = {
   email: 'admin@nacos.bowen.edu.ng',
   fullName: 'NACOS Admin',
   matricNumber: 'ADMIN001',
-  password: 'admin@nacos2024',
 };
 
 async function main() {
   console.log('Seeding database...');
+    const adminPassword = process.env.ADMIN_PASSWORD;
+  if (!adminPassword || adminPassword.length < 12) {
+    throw new Error('Set ADMIN_PASSWORD (at least 12 characters) before running the seed');
+  }
 
   // Departments
   console.log('Creating departments...');
@@ -338,30 +53,31 @@ async function main() {
     });
   }
 
-  // Student registry
-  console.log(`Seeding ${students.length} students into registry...`);
-  for (const student of students) {
-    await prisma.studentRegistry.upsert({
-      where: { matricNumber: student.matricNumber.toUpperCase() },
-      create: {
-        fullName: student.fullName,
-        matricNumber: student.matricNumber.toUpperCase(),
-        level: student.level,
-      },
-      update: {
-        fullName: student.fullName,
-        level: student.level,
-      },
-    });
-  }
+// Student registry
+console.log(`Seeding ${students.length} students into registry...`);
+const rows = students.map((s) => ({
+  fullName: s.fullName,
+  matricNumber: s.matricNumber.toUpperCase().trim(),
+  level: s.level,
+}));
+
+const CHUNK = 200;
+let inserted = 0;
+for (let i = 0; i < rows.length; i += CHUNK) {
+  const result = await prisma.studentRegistry.createMany({
+    data: rows.slice(i, i + CHUNK),
+    skipDuplicates: true,
+  });
+  inserted += result.count;
+}
+console.log(`Inserted ${inserted} new students (${rows.length - inserted} already existed or were duplicates).`);
 
   // Admin account
   console.log('Creating admin account...');
   const cscDept = await prisma.department.findUnique({ where: { code: 'CSC' } });
   const adminRole = await prisma.role.findUnique({ where: { name: 'admin' } });
-
   if (cscDept && adminRole) {
-    const hashedPassword = await bcrypt.hash(adminUser.password, 12);
+    const hashedPassword = await bcrypt.hash(adminPassword, 12);
     const admin = await prisma.user.upsert({
       where: { email: adminUser.email },
       create: {
@@ -373,9 +89,9 @@ async function main() {
         departmentId: cscDept.id,
         roles: { create: { roleId: adminRole.id } },
       },
-      update: {},
+      update: { password: hashedPassword },
     });
-    console.log(`Admin: ${admin.email} / password: ${adminUser.password}`);
+    console.log(`Admin account ready: ${admin.email}`);
   }
 
   console.log(`Done. ${students.length} students loaded into registry.`);
