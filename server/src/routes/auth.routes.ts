@@ -16,7 +16,30 @@ const clientKey = (req: Request): string => {
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10,
+  max: 20,
+  keyGenerator: clientKey,
+  message: { message: 'Too many attempts, try again later' },
+});
+
+// Login gets its own limiter: only failed attempts count, and the bucket is
+// per (visitor IP + email), so shared Wi-Fi doesn't lock out other students.
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 8,
+  skipSuccessfulRequests: true,
+  keyGenerator: (req: Request) => {
+    const email = String(req.body?.email ?? '').toLowerCase().trim();
+    return `${clientKey(req)}|${email}`;
+  },
+  message: { message: 'Too many attempts, try again later' },
+});
+
+// Broad cap per visitor IP across all emails (failed logins only), so one
+// machine can't guess at many accounts. Generous enough for shared Wi-Fi.
+const loginIpLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 50,
+  skipSuccessfulRequests: true,
   keyGenerator: clientKey,
   message: { message: 'Too many attempts, try again later' },
 });
@@ -30,8 +53,8 @@ const refreshLimiter = rateLimit({
 
 router.post('/signup', authLimiter, signup);
 router.post('/register', register);
-router.post('/login', authLimiter, login);
-router.post('/admin-login', authLimiter, adminLogin);
+router.post('/login', loginIpLimiter, loginLimiter, login);
+router.post('/admin-login', loginIpLimiter, loginLimiter, adminLogin);
 router.post('/refresh', refreshLimiter, refresh);
 router.post('/logout', logout);
 router.get('/me', requireAuth, getMe);
