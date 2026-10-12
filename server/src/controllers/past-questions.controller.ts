@@ -5,15 +5,28 @@ import { prisma } from '../lib/prisma';
 import { asyncHandler } from '../utils/asyncHandler';
 import { uploadPdfBuffer } from '../lib/cloudinary';
 
-// GET /api/past-questions?level=&courseCode=&departmentId=
+function parseDepartmentIds(raw: unknown): number[] {
+  const parts = Array.isArray(raw) ? raw : String(raw ?? '').split(',');
+  const ids = parts.map((p) => Number(p)).filter((n) => Number.isInteger(n) && n >= 1 && n <= 4);
+  return Array.from(new Set(ids));
+}
+
+// GET /api/past-questions?level=&courseCode=&departmentId=&year=
+// With departmentId: return questions whose list contains that department,
+// plus those with an empty list (meaning all departments).
 export const getPastQuestions = asyncHandler(async (req: Request, res: Response) => {
-const { level, courseCode, departmentId, year } = req.query;
+  const { level, courseCode, departmentId, year } = req.query;
 
   const questions = await prisma.pastQuestion.findMany({
     where: {
       ...(level && { level: Number(level) }),
       ...(courseCode && { courseCode: (courseCode as string).toUpperCase() }),
-      ...(departmentId && { departmentId: Number(departmentId) }),
+      ...(departmentId && {
+        OR: [
+          { departmentIds: { has: Number(departmentId) } },
+          { departmentIds: { isEmpty: true } },
+        ],
+      }),
       ...(year && { year: Number(year) }),
     },
     orderBy: [{ courseCode: 'asc' }, { year: 'desc' }],
@@ -29,7 +42,7 @@ export const uploadPastQuestion = asyncHandler(async (req: Request, res: Respons
 
   if (!file) return res.status(400).json({ message: 'PDF file is required' });
 
-  const { title, courseCode, level, year, departmentId } = req.body;
+  const { title, courseCode, level, year, departmentIds } = req.body;
 
 if (!title || !courseCode || !level || !year) {
   return res.status(400).json({ message: 'title, courseCode, level, and year are required' });
@@ -42,7 +55,7 @@ const fileUrl = await uploadPdfBuffer(file.buffer, 'nacos/past-questions');
       courseCode: courseCode.toUpperCase().trim(),
       level: Number(level),
       year: Number(year),
-      departmentId: departmentId ? Number(departmentId) : null,
+     departmentIds: parseDepartmentIds(departmentIds),
       fileUrl,
       uploadedById: userId,
     },

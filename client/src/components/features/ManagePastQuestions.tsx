@@ -4,7 +4,13 @@ import api from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 
 const LEVELS = [100, 200, 300, 400];
-const EMPTY = { title: '', courseCode: '', year: new Date().getFullYear().toString(), level: '300' };
+const DEPARTMENTS = [
+  { id: 1, name: 'Computer Science' },
+  { id: 2, name: 'Software Engineering' },
+  { id: 3, name: 'Cyber Security' },
+  { id: 4, name: 'Information Technology' },
+];
+const EMPTY = { title: '', courseCode: '', year: new Date().getFullYear().toString(), level: '300', departmentIds: [] as number[] };
 
 type PQ = {
   id: string;
@@ -52,6 +58,7 @@ const YEARS = Array.from({ length: 2026 - 2016 + 1 }, (_, i) => 2026 - i); // [2
       fd.append('courseCode', form.courseCode.toUpperCase().trim());
       fd.append('level', form.level);
       fd.append('year', form.year);
+     if (form.departmentIds.length > 0) fd.append('departmentIds', form.departmentIds.join(','));
 
       const { data } = await api.post('/past-questions', fd, {
         headers: { 'Content-Type': 'multipart/form-data' },
@@ -139,6 +146,35 @@ async function handleDelete(id: string) {
               </select>
             </div>
           </div>
+ <div>
+  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 block">Departments</label>
+  <div className="grid grid-cols-2 gap-2">
+    <label className="flex items-center gap-2 text-sm text-gray-700 col-span-2 cursor-pointer">
+      <input type="checkbox"
+        checked={form.departmentIds.length === 0}
+        onChange={() => setForm(f => ({ ...f, departmentIds: [] }))}
+        className="w-4 h-4 rounded border-gray-300" />
+      All departments
+    </label>
+    {DEPARTMENTS.map(d => (
+      <label key={d.id} className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+        <input type="checkbox"
+          checked={form.departmentIds.includes(d.id)}
+          onChange={() => setForm(f => ({
+            ...f,
+            departmentIds: f.departmentIds.includes(d.id)
+              ? f.departmentIds.filter(x => x !== d.id)
+              : [...f.departmentIds, d.id],
+          }))}
+          className="w-4 h-4 rounded border-gray-300" />
+        {d.name}
+      </label>
+    ))}
+  </div>
+  <p className="text-[11px] text-gray-400 mt-1.5">
+    Tick one or more departments, or leave "All departments" selected.
+  </p>
+</div>
           <div>
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">PDF File *</label>
             <input

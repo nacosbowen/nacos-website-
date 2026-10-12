@@ -171,7 +171,8 @@ model PastQuestion {
   id           String   @id @default(uuid())
   title        String
   courseCode   String
-  departmentId Int?
+   departmentId Int?
+  departmentIds Int[] @default([])
   level        Int
   year         Int
   fileUrl      String
