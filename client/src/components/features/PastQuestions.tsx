@@ -29,6 +29,7 @@ export default function PastQuestions() {
 
     const params = new URLSearchParams();
     params.set('level', String(level));
+    if (user?.department?.id) params.set('departmentId', String(user.department.id));
     if (year !== 'All') params.set('year', String(year));
 
     setLoading(true);
@@ -36,7 +37,7 @@ export default function PastQuestions() {
       setQuestions(r.data);
       setLoading(false);
     }).catch(() => setLoading(false));
-  }, [level, year, authLoading]);
+  }, [level, year, authLoading, user?.department?.id]);
 
   const filtered = questions.filter(q => {
     if (!search) return true;
