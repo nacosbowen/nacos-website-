@@ -266,7 +266,7 @@ pickImage(null);
                {event.imageUrl && (
   <img src={event.imageUrl.startsWith('http') ? event.imageUrl : `${baseUrl}${event.imageUrl}`}
     alt={event.title}
-    className="w-full max-h-96 object-contain rounded-xl mb-4 bg-gray-50" />
+className="w-full aspect-video object-cover rounded-xl mb-4 bg-gray-50" />
 )}
                 <div className="flex items-start gap-4">
                   <div className="flex-shrink-0 w-12 text-center">
