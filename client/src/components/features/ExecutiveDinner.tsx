@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
+import api from '@/lib/api';
 
 type DinnerInfo = {
   title: string; date: string; time: string; venue: string; theme: string;
@@ -17,14 +18,6 @@ const DEFAULT: DinnerInfo = {
   highlights: 'Live performances\nAward ceremony\nNetworking\nPhoto booth',
 };
 
-function load(): DinnerInfo {
-  try {
-    const stored = localStorage.getItem('nacos_dinner');
-    return stored ? { ...DEFAULT, ...JSON.parse(stored) } : { ...DEFAULT };
-  } catch { return { ...DEFAULT }; }
-}
-function save(data: DinnerInfo) { localStorage.setItem('nacos_dinner', JSON.stringify(data)); }
-
 export default function ExecutiveDinner() {
   const [info, setInfo] = useState<DinnerInfo>({ ...DEFAULT });
   const [editing, setEditing] = useState(false);
@@ -32,20 +25,46 @@ export default function ExecutiveDinner() {
   const [toast, setToast] = useState('');
   const [loaded, setLoaded] = useState(false);
 
-  useEffect(() => {
-    const data = load();
-    setInfo(data);
-    setForm(data);
-    setLoaded(true);
+    useEffect(() => {
+    api.get('/dinner')
+      .then(({ data }) => {
+        // The database sends the date as a full timestamp; the date input needs YYYY-MM-DD.
+        const d: DinnerInfo = {
+          ...DEFAULT,
+          ...data,
+          date: data.date ? String(data.date).slice(0, 10) : '',
+        };
+        setInfo(d);
+        setForm(d);
+      })
+      .catch(() => flash('Could not load dinner details'))
+      .finally(() => setLoaded(true));
   }, []);
 
-  function saveChanges() {
-    save(form);
-    setInfo({ ...form });
-    setEditing(false);
-    flash('Dinner details updated ✓');
+  async function saveChanges() {
+    try {
+      const { data } = await api.patch('/dinner', {
+        title: form.title,
+        date: form.date || null,
+        time: form.time,
+        venue: form.venue,
+        theme: form.theme,
+        dressCode: form.dressCode,
+        ticketPrice: form.ticketPrice,
+        highlights: form.highlights,
+      });
+      const d: DinnerInfo = {
+        ...DEFAULT,
+        ...data,
+        date: data.date ? String(data.date).slice(0, 10) : '',
+      };
+      setInfo(d);
+      setEditing(false);
+      flash('Dinner details updated ✓');
+    } catch (err: any) {
+      flash(err?.response?.data?.message || 'Failed to save dinner details');
+    }
   }
-
   function flash(msg: string) { setToast(msg); setTimeout(() => setToast(''), 3000); }
 
   if (!loaded) return null;

@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { asyncHandler } from '../utils/asyncHandler';
+import { uploadImageBuffer } from '../lib/cloudinary';
 
 // Ensures a DinnerInfo row always exists, returns it
 async function getOrCreateDinnerInfo() {
@@ -50,7 +51,7 @@ export const uploadDinnerImage = asyncHandler(async (req: Request, res: Response
 
   if (!file) return res.status(400).json({ message: 'Image file is required' });
 
-  const imageUrl = `/uploads/dinner/${file.filename}`;
+ const imageUrl = await uploadImageBuffer(file.buffer, 'nacos/dinner');
   const info = await getOrCreateDinnerInfo();
 
   const updated = await prisma.dinnerInfo.update({

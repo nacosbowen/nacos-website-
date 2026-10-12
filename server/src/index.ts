@@ -97,7 +97,8 @@ app.use((err: any, _req: any, res: any, _next: any) => {
     err?.name === 'PrismaClientInitializationError' ||
     err?.code === 'P1001' ||
     err?.code === 'P1002' ||
-    err?.code === 'P1017';
+    err?.code === 'P1017' ||
+    err?.code === 'P2024';
   if (isDbDown) {
     return res.status(503).json({
       message: 'We could not reach the server right now. Please try again in a moment.',

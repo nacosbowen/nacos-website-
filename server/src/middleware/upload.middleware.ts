@@ -1,6 +1,5 @@
 import multer from 'multer';
-import path from 'path';
-import fs from 'fs';
+
 
 // Past-question PDFs are held in memory and sent to Cloudinary, not written to disk.
 export const uploadPdf = multer({
@@ -12,22 +11,10 @@ export const uploadPdf = multer({
   },
 });
 
-const dinnerUploadsDir = path.join(__dirname, '../../uploads/dinner');
-if (!fs.existsSync(dinnerUploadsDir)) {
-  fs.mkdirSync(dinnerUploadsDir, { recursive: true });
-}
-
-const imageStorage = multer.diskStorage({
-  destination: dinnerUploadsDir,
-  filename: (_req, file, cb) => {
-    const unique = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    cb(null, `${unique}${path.extname(file.originalname)}`);
-  },
-});
-
+// Dinner image is held in memory and sent to Cloudinary, not written to disk.
 export const uploadImage = multer({
-  storage: imageStorage,
-  limits: { fileSize: 5 * 1024 * 1024 },
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 8 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     if (file.mimetype.startsWith('image/')) cb(null, true);
     else cb(new Error('Only image files are allowed'));
