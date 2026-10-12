@@ -65,9 +65,9 @@ export const deletePastQuestion = asyncHandler(async (req: Request, res: Respons
     include: { roles: { include: { role: true } } },
   });
   const userRoles = user?.roles.map((ur) => ur.role.name) ?? [];
-  const isAdmin = userRoles.includes('admin');
+const canManageAll = userRoles.includes('admin') || userRoles.includes('executive');
 
-  if (question.uploadedById !== userId && !isAdmin) {
+if (question.uploadedById !== userId && !canManageAll) {
     return res.status(403).json({ message: 'You can only delete your own uploads' });
   }
 
