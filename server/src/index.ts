@@ -91,7 +91,27 @@ app.get('/health', (_req, res) => res.json({ status: 'ok' }));
 // Global error handler
 app.use((err: any, _req: any, res: any, _next: any) => {
   console.error('Unhandled error:', err);
-  res.status(500).json({ message: err.message || 'Internal server error' });
+
+  // Database unreachable (usually a brief Supabase pooler hiccup)
+  const isDbDown =
+    err?.name === 'PrismaClientInitializationError' ||
+    err?.code === 'P1001' ||
+    err?.code === 'P1002' ||
+    err?.code === 'P1017';
+  if (isDbDown) {
+    return res.status(503).json({
+      message: 'We could not reach the server right now. Please try again in a moment.',
+    });
+  }
+
+  // Upload problems (wrong file type, file too large) are the client's fault
+  if (err?.name === 'MulterError' || /^Only (image|PDF) files are allowed$/.test(err?.message ?? '')) {
+    return res.status(400).json({
+      message: err.code === 'LIMIT_FILE_SIZE' ? 'File is too large' : err.message,
+    });
+  }
+
+  res.status(500).json({ message: 'Something went wrong. Please try again.' });
 });
 
 const PORT = process.env.PORT || 5000;
