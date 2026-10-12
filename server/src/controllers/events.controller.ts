@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { io } from '../index';
 import { asyncHandler } from '../utils/asyncHandler';
+import { uploadImageBuffer } from '../lib/cloudinary';
 
 // GET /api/events
 export const getEvents = asyncHandler(async (req: Request, res: Response) => {
@@ -31,9 +32,12 @@ export const createEvent = asyncHandler(async (req: Request, res: Response) => {
     return res.status(400).json({ message: 'Title and date are required' });
   }
 
+  const file = (req as any).file as Express.Multer.File | undefined;
+  const imageUrl = file ? await uploadImageBuffer(file.buffer, 'nacos/events') : null;
+
   const event = await prisma.event.create({
     data: {
-      title, description, date: new Date(date), location, createdById: userId,
+      title, description, date: new Date(date), location, imageUrl, createdById: userId,
       price: price !== undefined ? Number(price) : 0,
       spots: spots !== undefined ? Number(spots) : 0,
       category: category || 'Other',
@@ -130,7 +134,7 @@ export const uploadEventImage = asyncHandler(async (req: Request, res: Response)
   const file = (req as any).file as Express.Multer.File | undefined;
   if (!file) return res.status(400).json({ message: 'Image file is required' });
 
-  const imageUrl = `/uploads/events/${file.filename}`;
+  const imageUrl = await uploadImageBuffer(file.buffer, 'nacos/events');
 
   const event = await prisma.event.update({
     where: { id: req.params.id },

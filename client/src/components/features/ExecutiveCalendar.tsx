@@ -28,6 +28,14 @@ export default function ExecutiveCalendar() {
   const [toast, setToast] = useState('');
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [uploadingImageFor, setUploadingImageFor] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+const [imagePreview, setImagePreview] = useState<string | null>(null);
+
+function pickImage(file: File | null) {
+  if (imagePreview) URL.revokeObjectURL(imagePreview);
+  setImageFile(file);
+  setImagePreview(file ? URL.createObjectURL(file) : null);
+}
   const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5001';
 
 
@@ -61,13 +69,25 @@ export default function ExecutiveCalendar() {
       setEvents(prev => prev.map(e => e.id === editing ? { ...data, _count: e._count } : e));
       flash('Event updated ✓');
     } else {
-      const { data } = await api.post('/events', payload);
+      const fd = new FormData();
+fd.append('title', payload.title);
+if (payload.description) fd.append('description', payload.description);
+fd.append('date', payload.date);
+if (payload.location) fd.append('location', payload.location);
+fd.append('price', String(payload.price));
+fd.append('spots', String(payload.spots));
+fd.append('category', payload.category);
+if (imageFile) fd.append('file', imageFile);
+const { data } = await api.post('/events', fd, {
+  headers: { 'Content-Type': 'multipart/form-data' },
+});
       setEvents(prev => [{ ...data, _count: { rsvps: 0 } }, ...prev]);
       flash('Event created ✓');
     }
     setForm(EMPTY_FORM);
-    setEditing(null);
-    setShowForm(false);
+setEditing(null);
+setShowForm(false);
+pickImage(null);
   } catch (err: any) {
     flash(err?.response?.data?.message || 'Failed to save event');
   } finally {
@@ -205,6 +225,17 @@ export default function ExecutiveCalendar() {
                 className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900 resize-none" />
             </div>
           </div>
+          {!editing && (
+  <div>
+    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">Image (optional)</label>
+    <input type="file" accept="image/*"
+      onChange={e => pickImage(e.target.files?.[0] ?? null)}
+      className="block w-full text-sm text-gray-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200" />
+    {imagePreview && (
+      <img src={imagePreview} alt="Preview" className="mt-3 w-full max-h-80 object-contain rounded-xl bg-gray-50" />
+    )}
+  </div>
+)}
           <div className="flex gap-2 pt-1">
             <button onClick={handleSave} disabled={!form.title || !form.date || saving}
               className="px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-gray-900 hover:bg-gray-800
@@ -232,10 +263,11 @@ export default function ExecutiveCalendar() {
               return (
               <div key={event.id} className={`bg-white rounded-2xl border p-5 shadow-[0_2px_8px_rgba(0,0,0,0.06)]
                 ${isPast ? 'border-gray-100 opacity-70' : 'border-gray-200'}`}>
-                {event.imageUrl && (
-                  <img src={`${baseUrl}${event.imageUrl}`} alt={event.title}
-                    className="w-full h-32 object-cover rounded-xl mb-4" />
-                )}
+               {event.imageUrl && (
+  <img src={event.imageUrl.startsWith('http') ? event.imageUrl : `${baseUrl}${event.imageUrl}`}
+    alt={event.title}
+    className="w-full max-h-96 object-contain rounded-xl mb-4 bg-gray-50" />
+)}
                 <div className="flex items-start gap-4">
                   <div className="flex-shrink-0 w-12 text-center">
                     <p className="text-xl font-black text-gray-900" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{d.getDate()}</p>

@@ -138,10 +138,11 @@ function EventCard({ event, formatTime, expanded, setExpanded, rsvping, hasRsvp,
   return (
     <div className={`bg-white rounded-2xl border p-5 shadow-[0_2px_8px_rgba(0,0,0,0.06)] transition-all
       ${isPast ? 'border-gray-100 opacity-70' : 'border-gray-200'}`}>
-      {event.imageUrl && (
-        <img src={`${baseUrl}${event.imageUrl}`} alt={event.title}
-          className="w-full h-32 object-cover rounded-xl mb-4" />
-      )}
+     {event.imageUrl && (
+  <img src={event.imageUrl.startsWith('http') ? event.imageUrl : `${baseUrl}${event.imageUrl}`}
+    alt={event.title}
+    className="w-full max-h-96 object-contain rounded-xl mb-4 bg-gray-50" />
+)}
       <div className="flex items-start gap-4">
         <div className="flex-shrink-0 w-12 text-center">
           <p className="text-xl font-black text-gray-900" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>

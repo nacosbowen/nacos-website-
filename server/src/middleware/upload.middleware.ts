@@ -45,22 +45,11 @@ export const uploadImage = multer({
     else cb(new Error('Only image files are allowed'));
   },
 });
-const eventUploadsDir = path.join(__dirname, '../../uploads/events');
-if (!fs.existsSync(eventUploadsDir)) {
-  fs.mkdirSync(eventUploadsDir, { recursive: true });
-}
 
-const eventImageStorage = multer.diskStorage({
-  destination: eventUploadsDir,
-  filename: (_req, file, cb) => {
-    const unique = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    cb(null, `${unique}${path.extname(file.originalname)}`);
-  },
-});
-
+// Events images are held in memory and sent to Cloudinary, not written to disk.
 export const uploadEventImage = multer({
-  storage: eventImageStorage,
-  limits: { fileSize: 5 * 1024 * 1024 },
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 8 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     if (file.mimetype.startsWith('image/')) cb(null, true);
     else cb(new Error('Only image files are allowed'));

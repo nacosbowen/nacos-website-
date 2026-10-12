@@ -23,7 +23,7 @@ router.use(requireAuth);
 
 router.get('/', getEvents);
 router.get('/:id', getEvent);
-router.post('/', requireRole('executive', 'admin'), createEvent);
+router.post('/', requireRole('executive', 'admin'), uploadEventImageMiddleware.single('file'), createEvent);
 router.patch('/:id', requireRole('executive', 'admin'), updateEvent);
 router.delete('/:id', requireRole('executive', 'admin'), deleteEvent);
 
