@@ -20,3 +20,25 @@ export function uploadImageBuffer(buffer: Buffer, folder: string): Promise<strin
     stream.end(buffer);
   });
 }
+
+// Uploads an in-memory PDF to Cloudinary as a raw file and returns its https URL.
+export function uploadPdfBuffer(buffer: Buffer, folder: string): Promise<string> {
+  cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+  });
+
+  const publicId = `${Date.now()}-${Math.random().toString(36).slice(2)}.pdf`;
+
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      { folder, resource_type: 'raw', public_id: publicId },
+      (error, result) => {
+        if (error || !result) return reject(error ?? new Error('Upload failed'));
+        resolve(result.secure_url);
+      }
+    );
+    stream.end(buffer);
+  });
+}

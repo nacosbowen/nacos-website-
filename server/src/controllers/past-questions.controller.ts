@@ -3,6 +3,7 @@ import path from 'path';
 import fs from 'fs';
 import { prisma } from '../lib/prisma';
 import { asyncHandler } from '../utils/asyncHandler';
+import { uploadPdfBuffer } from '../lib/cloudinary';
 
 // GET /api/past-questions?level=&courseCode=&departmentId=
 export const getPastQuestions = asyncHandler(async (req: Request, res: Response) => {
@@ -30,14 +31,11 @@ export const uploadPastQuestion = asyncHandler(async (req: Request, res: Respons
 
   const { title, courseCode, level, year, departmentId } = req.body;
 
-  if (!title || !courseCode || !level || !year) {
-    // Clean up uploaded file
-    fs.unlinkSync(file.path);
-    return res.status(400).json({ message: 'title, courseCode, level, and year are required' });
-  }
+if (!title || !courseCode || !level || !year) {
+  return res.status(400).json({ message: 'title, courseCode, level, and year are required' });
+}
 
-  const fileUrl = `/uploads/past-questions/${file.filename}`;
-
+const fileUrl = await uploadPdfBuffer(file.buffer, 'nacos/past-questions');
   const question = await prisma.pastQuestion.create({
     data: {
       title: title.trim(),
@@ -70,10 +68,6 @@ const canManageAll = userRoles.includes('admin') || userRoles.includes('executiv
 if (question.uploadedById !== userId && !canManageAll) {
     return res.status(403).json({ message: 'You can only delete your own uploads' });
   }
-
-  // Remove file from disk
-  const filePath = path.join(__dirname, '../../', question.fileUrl);
-  if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
 
   await prisma.pastQuestion.delete({ where: { id: req.params.id } });
   return res.json({ message: 'Deleted' });

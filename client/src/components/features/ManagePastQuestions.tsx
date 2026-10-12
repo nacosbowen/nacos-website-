@@ -69,16 +69,17 @@ const YEARS = Array.from({ length: 2026 - 2016 + 1 }, (_, i) => 2026 - i); // [2
     }
   }
 
-  async function handleDelete(id: string) {
-    try {
-      await api.delete(`/past-questions/${id}`);
-      setQuestions(prev => prev.filter(q => q.id !== id));
-      setDeleteId(null);
-      flash('Deleted');
-    } catch {
-      flash('Failed to delete');
-    }
+async function handleDelete(id: string) {
+  try {
+    await api.delete(`/past-questions/${id}`);
+    setQuestions(prev => prev.filter(q => q.id !== id));
+    setDeleteId(null);
+    flash('Deleted');
+  } catch (err: any) {
+    setDeleteId(null);
+    flash(err?.response?.data?.message || 'Failed to delete');
   }
+}
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
@@ -211,7 +212,7 @@ const YEARS = Array.from({ length: 2026 - 2016 + 1 }, (_, i) => 2026 - i); // [2
                 <p className="text-sm text-gray-700">{q.title}</p>
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
-                <a href={`${baseUrl}${q.fileUrl}`} target="_blank" rel="noopener noreferrer" download
+           <a href={q.fileUrl.startsWith('http') ? q.fileUrl : `${baseUrl}${q.fileUrl}`} target="_blank" rel="noopener noreferrer" download
                   className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition">
                   <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
                     <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />

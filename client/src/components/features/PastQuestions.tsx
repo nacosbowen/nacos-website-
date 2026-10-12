@@ -118,8 +118,8 @@ export default function PastQuestions() {
                 </div>
                 <p className="text-sm text-gray-700">{q.title}</p>
               </div>
-              <a
-                href={`${baseUrl}${q.fileUrl}`}
+                          <a
+                href={q.fileUrl.startsWith('http') ? q.fileUrl : `${baseUrl}${q.fileUrl}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 download
