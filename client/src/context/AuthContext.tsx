@@ -52,7 +52,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [overrideRole, setOverrideRole] = useState<string | null>(null);
-  const [popup, setPopup] = useState<PopupNotification | null>(null);
+const [popupQueue, setPopupQueue] = useState<PopupNotification[]>([]);
+const popup = popupQueue[0] ?? null;
   const router = useRouter();
 
   const activeRole = overrideRole ?? (user ? getTopRole(user.roles) : 'student');
@@ -100,27 +101,25 @@ useEffect(() => {
     socket.off('connect', handleConnect);
   };
 }, [user]);
+// Fetch all active broadcast popups once per login/session. They are shown
+// one at a time; dismissing one reveals the next. Nothing is marked as read,
+// so they all show again on the next login until they expire.
+const isStudentView = activeRole === 'student';
 
-// Check for an active broadcast popup once per login/session — keyed on
-// user id, so this fires once when a user first becomes authenticated
-// (fresh login, or a page reload that restores the session), not on
-// every internal dashboard navigation.
 useEffect(() => {
-  if (!user) {
-    setPopup(null);
+  if (!user || !isStudentView) {
+    setPopupQueue([]);
     return;
   }
-  api.get('/notifications/popup')
+  api.get('/notifications/popups')
     .then((r) => {
-      if (r.data) setPopup(r.data);
+      const list = Array.isArray(r.data) ? r.data : r.data?.popups ?? [];
+      setPopupQueue(list);
     })
     .catch(() => {});
-}, [user?.id]);
+}, [user?.id, isStudentView]);
 
-// Dismissing only hides the popup for this session/login — it is not
-// marked as permanently read, so it will show again the next time the
-// student logs in, for as long as the executive's day window is active.
-const dismissPopup = () => setPopup(null);
+const dismissPopup = () => setPopupQueue((q) => q.slice(1));
 
 const login = async (email: string, password: string, selectedRole: string): Promise<AuthUser> => {
   const { data } = await api.post('/auth/login', { email, password, selectedRole });

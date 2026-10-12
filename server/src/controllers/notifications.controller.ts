@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { io } from '../index';
-import { NotificationAudience } from '@prisma/client';
+import { NotificationAudience, NotificationCategory } from '@prisma/client';
 import { asyncHandler } from '../utils/asyncHandler';
 
 // GET /api/notifications
@@ -61,8 +61,6 @@ export const getUnreadCount = asyncHandler(async (req: Request, res: Response) =
 });
 
 // GET /api/notifications/popup
-// Returns the single most recent active popup notification for this user
-// (matches their audience, hasn't expired, and they haven't dismissed it yet).
 export const getActivePopup = asyncHandler(async (req: Request, res: Response) => {
   const userId = (req as any).userId;
 
@@ -156,4 +154,124 @@ export const markAllRead = asyncHandler(async (req: Request, res: Response) => {
   }
 
   return res.json({ marked: unread.length });
+});
+
+// GET /api/notifications/popups  — every active popup for this user
+export const getActivePopups = asyncHandler(async (req: Request, res: Response) => {
+  const userId = (req as any).userId;
+
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) return res.json([]);
+
+  const levelAudience = `level_${user.level}` as NotificationAudience;
+
+  const popups = await prisma.notification.findMany({
+    where: {
+      isPopup: true,
+      audience: { in: ['all', levelAudience] },
+      popupExpiresAt: { gt: new Date() },
+    },
+    orderBy: { createdAt: 'desc' },
+    take: 10,
+  });
+
+  return res.json(popups);
+});
+
+// GET /api/notifications/sent  (exec/admin) — what this executive sent; admin sees all
+export const getSentNotifications = asyncHandler(async (req: Request, res: Response) => {
+  const userId = (req as any).userId;
+
+  const me = await prisma.user.findUnique({
+    where: { id: userId },
+    include: { roles: { include: { role: true } } },
+  });
+  const isAdmin = me?.roles.some((ur) => ur.role.name === 'admin') ?? false;
+
+  const notifications = await prisma.notification.findMany({
+    where: isAdmin ? {} : { createdById: userId },
+    orderBy: { createdAt: 'desc' },
+    take: 100,
+  });
+
+  return res.json(notifications);
+});
+
+// DELETE /api/notifications/:id  (the sender, or an admin)
+export const deleteNotification = asyncHandler(async (req: Request, res: Response) => {
+  const userId = (req as any).userId;
+
+  const notification = await prisma.notification.findUnique({ where: { id: req.params.id } });
+  if (!notification) return res.status(404).json({ message: 'Notification not found' });
+
+  const me = await prisma.user.findUnique({
+    where: { id: userId },
+    include: { roles: { include: { role: true } } },
+  });
+  const isAdmin = me?.roles.some((ur) => ur.role.name === 'admin') ?? false;
+
+  if (notification.createdById !== userId && !isAdmin) {
+    return res.status(403).json({ message: 'You can only delete notifications you sent' });
+  }
+
+  await prisma.notification.delete({ where: { id: req.params.id } });
+  return res.json({ message: 'Notification deleted' });
+});
+
+// PATCH /api/notifications/:id  (the sender, or an admin)
+export const updateNotification = asyncHandler(async (req: Request, res: Response) => {
+  const userId = (req as any).userId;
+const { title, body, audience, category, isPopup, popupDays } = req.body;
+
+  const notification = await prisma.notification.findUnique({ where: { id: req.params.id } });
+  if (!notification) return res.status(404).json({ message: 'Notification not found' });
+
+  const me = await prisma.user.findUnique({
+    where: { id: userId },
+    include: { roles: { include: { role: true } } },
+  });
+  const isAdmin = me?.roles.some((ur) => ur.role.name === 'admin') ?? false;
+
+  if (notification.createdById !== userId && !isAdmin) {
+    return res.status(403).json({ message: 'You can only edit notifications you sent' });
+  }
+
+  if (!title?.trim() || !body?.trim()) {
+    return res.status(400).json({ message: 'Title and body are required' });
+  }
+  if (audience !== undefined && !Object.values(NotificationAudience).includes(audience)) {
+    return res.status(400).json({ message: 'Invalid audience' });
+  }
+  if (category !== undefined && !Object.values(NotificationCategory).includes(category)) {
+    return res.status(400).json({ message: 'Invalid category' });
+  }
+
+const popupData: { isPopup?: boolean; popupExpiresAt?: Date } = {};
+if (isPopup === false) {
+  // Turning off keeps the old expiry date, so turning it back on can restore it.
+  popupData.isPopup = false;
+} else if (isPopup === true) {
+  const days = Number(popupDays);
+  if (days > 0) {
+    popupData.isPopup = true;
+    popupData.popupExpiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+  } else if (notification.popupExpiresAt && notification.popupExpiresAt > new Date()) {
+    popupData.isPopup = true; // expiry still in the future, so keep it unchanged
+  } else {
+    return res.status(400).json({ message: 'Number of days is required to enable the popup' });
+  }
+}
+
+const updated = await prisma.notification.update({
+  where: { id: req.params.id },
+  data: {
+    title: title.trim(),
+    body: body.trim(),
+    ...(audience !== undefined && { audience }),
+    ...(category !== undefined && { category }),
+    ...popupData,
+  },
+});
+
+  return res.json(updated);
 });
