@@ -62,8 +62,8 @@ const popup = popupQueue[0] ?? null;
   const hasRestoredSession = useRef(false);
   const ACTIVE_ROLE_KEY = 'nacos_active_role';
 
-  const restoreSession = useCallback(async () => {
-  try {
+const restoreSession = useCallback(async () => {
+  const attempt = async () => {
     const { data: r } = await api.post('/auth/refresh');
     setToken(r.accessToken);
     const { data: me } = await api.get('/auth/me');
@@ -72,6 +72,19 @@ const popup = popupQueue[0] ?? null;
     const savedRole = localStorage.getItem(ACTIVE_ROLE_KEY);
     if (savedRole && me.roles.includes(savedRole)) {
       setOverrideRole(savedRole);
+    }
+  };
+
+  try {
+    try {
+      await attempt();
+    } catch (err: any) {
+      const status = err?.response?.status;
+      // 401/403 means the session is genuinely invalid: don't retry.
+      if (status === 401 || status === 403) throw err;
+      // Anything else (network error, 500, 503, database hiccup): wait and retry once.
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      await attempt();
     }
   } catch {
     setUser(null);
