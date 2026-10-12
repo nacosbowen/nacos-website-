@@ -86,7 +86,7 @@ io.on('connection', (socket) => {
   });
 });
 
-app.get('/debug-ip', (req, res) => {
+app.get('/api/debug-ip', (req, res) => {
   res.json({ ip: req.ip, xff: req.headers['x-forwarded-for'] });
 });
 
