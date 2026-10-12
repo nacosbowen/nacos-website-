@@ -86,10 +86,6 @@ io.on('connection', (socket) => {
   });
 });
 
-app.get('/api/debug-ip', (req, res) => {
-  res.json({ ip: req.ip, xff: req.headers['x-forwarded-for'] });
-});
-
 app.get('/health', (_req, res) => res.json({ status: 'ok' }));
 
 // Global error handler
