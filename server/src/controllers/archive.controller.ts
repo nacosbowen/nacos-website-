@@ -1,8 +1,7 @@
 import { Request, Response } from 'express';
-import path from 'path';
-import fs from 'fs';
 import { prisma } from '../lib/prisma';
 import { asyncHandler } from '../utils/asyncHandler';
+import { uploadImageBuffer } from '../lib/cloudinary';
 
 // GET /api/archive
 export const getArchiveItems = asyncHandler(async (_req: Request, res: Response) => {
@@ -38,12 +37,6 @@ export const deleteArchiveItem = asyncHandler(async (req: Request, res: Response
   });
   if (!item) return res.status(404).json({ message: 'Not found' });
 
-  // Clean up image files from disk
-  for (const img of item.images) {
-    const filePath = path.join(__dirname, '../../', img.imageUrl);
-    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-  }
-
   await prisma.archiveItem.delete({ where: { id: req.params.id } }); // images cascade-delete
   return res.json({ message: 'Deleted' });
 });
@@ -58,13 +51,15 @@ export const addArchiveImages = asyncHandler(async (req: Request, res: Response)
   const item = await prisma.archiveItem.findUnique({ where: { id: req.params.id } });
   if (!item) return res.status(404).json({ message: 'Archive item not found' });
 
+  // Upload all files to Cloudinary first, then save their URLs in one transaction.
+  const urls = await Promise.all(
+    files.map((file) => uploadImageBuffer(file.buffer, 'nacos/archive'))
+  );
+
   const created = await prisma.$transaction(
-    files.map((file) =>
+    urls.map((imageUrl) =>
       prisma.archiveImage.create({
-        data: {
-          archiveItemId: req.params.id,
-          imageUrl: `/uploads/archive/${file.filename}`,
-        },
+        data: { archiveItemId: req.params.id, imageUrl },
       })
     )
   );
@@ -76,9 +71,6 @@ export const addArchiveImages = asyncHandler(async (req: Request, res: Response)
 export const deleteArchiveImage = asyncHandler(async (req: Request, res: Response) => {
   const image = await prisma.archiveImage.findUnique({ where: { id: req.params.imageId } });
   if (!image) return res.status(404).json({ message: 'Image not found' });
-
-  const filePath = path.join(__dirname, '../../', image.imageUrl);
-  if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
 
   await prisma.archiveImage.delete({ where: { id: req.params.imageId } });
   return res.json({ message: 'Image deleted' });

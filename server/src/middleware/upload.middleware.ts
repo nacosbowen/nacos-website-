@@ -44,22 +44,10 @@ export const uploadEventImage = multer({
   },
 });
 
-const archiveUploadsDir = path.join(__dirname, '../../uploads/archive');
-if (!fs.existsSync(archiveUploadsDir)) {
-  fs.mkdirSync(archiveUploadsDir, { recursive: true });
-}
-
-const archiveImageStorage = multer.diskStorage({
-  destination: archiveUploadsDir,
-  filename: (_req, file, cb) => {
-    const unique = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    cb(null, `${unique}${path.extname(file.originalname)}`);
-  },
-});
-
+// Archive images are held in memory and sent to Cloudinary, not written to disk.
 export const uploadArchiveImages = multer({
-  storage: archiveImageStorage,
-  limits: { fileSize: 5 * 1024 * 1024 },
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 8 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     if (file.mimetype.startsWith('image/')) cb(null, true);
     else cb(new Error('Only image files are allowed'));

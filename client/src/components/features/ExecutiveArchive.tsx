@@ -7,6 +7,7 @@ const TYPES = ['Gallery', 'Document', 'Video', 'Report', 'Newsletter', 'Other'];
 const EMPTY = { title: '', type: 'Document', year: new Date().getFullYear().toString(), category: 'Events', description: '' };
 
 const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5001';
+const imgSrc = (url: string) => (url.startsWith('http') ? url : `${baseUrl}${url}`);
 
 type ArchiveImage = { id: string; imageUrl: string };
 type ArchiveItem = {
@@ -222,7 +223,7 @@ export default function ExecutiveArchive() {
                       <div className="grid grid-cols-4 gap-2 mb-3">
                         {item.images.map(img => (
                           <div key={img.id} className="relative group">
-                            <img src={`${baseUrl}${img.imageUrl}`} alt=""
+                           <img src={imgSrc(img.imageUrl)} alt=""
                               className="w-full h-20 object-cover rounded-lg" />
                             <button onClick={() => handleImageDelete(item.id, img.id)}
                               className="absolute top-1 right-1 w-5 h-5 bg-black/60 text-white rounded-full text-xs

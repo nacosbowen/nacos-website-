@@ -4,6 +4,7 @@ import api from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 
 const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5001';
+const imgSrc = (url: string) => (url.startsWith('http') ? url : `${baseUrl}${url}`);
 
 type ArchiveImage = { id: string; imageUrl: string };
 type ArchiveItem = {
@@ -62,7 +63,7 @@ export default function NacosArchive() {
     <div className="max-w-3xl mx-auto space-y-6">
       {lightbox && (
         <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={() => setLightbox(null)}>
-          <img src={`${baseUrl}${lightbox}`} alt="" className="max-w-full max-h-full rounded-xl" />
+        <img src={imgSrc(lightbox)} alt="" className="max-w-full max-h-full rounded-xl" />
         </div>
       )}
 
@@ -134,7 +135,7 @@ export default function NacosArchive() {
                 {item.images.length > 0 && (
                   <div className="grid grid-cols-4 gap-2 mt-4">
                     {item.images.map(img => (
-                      <img key={img.id} src={`${baseUrl}${img.imageUrl}`} alt=""
+                      <img key={img.id} src={imgSrc(img.imageUrl)} alt=""
                         onClick={() => setLightbox(img.imageUrl)}
                         className="w-full h-20 object-cover rounded-lg cursor-pointer hover:opacity-80 transition" />
                     ))}
