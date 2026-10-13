@@ -24,10 +24,18 @@ function VerifyEmailForm() {
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
+  const [verified, setVerified] = useState(false);
 
   useEffect(() => {
     setEmail(emailFromQuery);
   }, [emailFromQuery]);
+
+  useEffect(() => {
+    if (!verified) return;
+    router.prefetch('/login');
+    const t = setTimeout(() => router.push('/login'), 1200);
+    return () => clearTimeout(t);
+  }, [verified, router]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -35,7 +43,7 @@ function VerifyEmailForm() {
     setLoading(true);
     try {
       await api.post('/auth/verify-email', { email, code });
-      router.push('/login');
+      setVerified(true);
     } catch (err: any) {
       setError(err?.response?.data?.message || 'Verification failed. Please try again.');
     } finally {
@@ -128,7 +136,7 @@ function VerifyEmailForm() {
                 </div>
               )}
 
-              <button type="submit" disabled={loading}
+              <button type="submit" disabled={loading || verified}
                 className="w-full py-3 rounded-xl font-bold text-sm text-white
                   bg-gray-900 hover:bg-gray-800 active:bg-black disabled:opacity-60 disabled:cursor-not-allowed
                   shadow-[0_4px_12px_rgba(0,0,0,0.2)] hover:shadow-[0_6px_20px_rgba(0,0,0,0.25)]
@@ -150,6 +158,22 @@ function VerifyEmailForm() {
           </div>
         </div>
       </div>
+
+      {verified && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-sm rounded-2xl bg-white px-8 py-8 text-center shadow-2xl">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-green-100">
+              <svg className="h-7 w-7 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h2 className="text-lg font-black text-gray-900" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+              Email verified successfully
+            </h2>
+            <p className="mt-1 text-sm text-gray-400">Redirecting to login...</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
