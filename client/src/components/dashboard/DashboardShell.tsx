@@ -4,6 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import PushPrompt from '@/components/PushPrompt';
 
 interface NavItem {
   href: string;
@@ -370,6 +371,7 @@ export default function DashboardShell({
 
         {/* Page content */}
         <main className="flex-1 overflow-auto p-3 sm:p-5 lg:p-7">
+          {activeRole === 'student' && <PushPrompt />}
           {children}
         </main>
       </div>

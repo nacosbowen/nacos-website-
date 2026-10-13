@@ -3,6 +3,7 @@ import { prisma } from '../lib/prisma';
 import { io } from '../index';
 import { NotificationAudience, NotificationCategory } from '@prisma/client';
 import { asyncHandler } from '../utils/asyncHandler';
+import { sendPush } from '../lib/push';
 
 // GET /api/notifications
 export const getNotifications = asyncHandler(async (req: Request, res: Response) => {
@@ -111,6 +112,40 @@ export const createNotification = asyncHandler(async (req: Request, res: Respons
   // Emit real-time to appropriate rooms
   const targetRoom = audience && audience !== 'all' ? audience : 'level_all';
   io.to(targetRoom).emit('notification:new', notification);
+
+    // Phone push: runs in the background and never blocks or breaks the broadcast
+  (async () => {
+    try {
+      const level =
+        audience && audience !== 'all'
+          ? Number(String(audience).replace('level_', ''))
+          : null;
+
+      const subs = await prisma.pushSubscription.findMany({
+        where: {
+          userId: { not: userId },
+          ...(level ? { user: { level } } : {}),
+        },
+        select: { endpoint: true, p256dh: true, auth: true },
+      });
+   
+if (subs.length === 0) return;
+
+      const text = String(body);
+      const dead = await sendPush(subs, {
+        title,
+        body: text.length > 140 ? text.slice(0, 137) + '...' : text,
+        url: '/dashboard/student/notifications',
+      });
+
+
+      if (dead.length) {
+        await prisma.pushSubscription.deleteMany({ where: { endpoint: { in: dead } } });
+      }
+    } catch (err) {
+      console.error('Push broadcast failed:', err);
+    }
+  })();
 
   return res.status(201).json(notification);
 });
