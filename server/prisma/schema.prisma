@@ -152,6 +152,7 @@ model Notification {
   createdAt      DateTime             @default(now())
   isPopup        Boolean              @default(false)
   popupExpiresAt DateTime?
+  oneTime        Boolean              @default(false)
 
   reads NotificationRead[]
 }

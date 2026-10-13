@@ -22,6 +22,7 @@ export interface PopupNotification {
   title: string;
   body: string;
   category: string;
+  oneTime?: boolean;
 }
 
 interface AuthContextValue {
@@ -124,7 +125,14 @@ const loadPopups = () => {
     .catch(() => {});
 };
 
-const dismissPopup = () => setPopupQueue((q) => q.slice(1));
+const dismissPopup = () => {
+  const current = popupQueue[0];
+  // One-time notices are marked as seen on the server, so they never return.
+  if (current?.oneTime) {
+    api.patch(`/notifications/${current.id}/read`).catch(() => {});
+  }
+  setPopupQueue((q) => q.slice(1));
+};
 
 const login = async (email: string, password: string, selectedRole: string): Promise<AuthUser> => {
   const { data } = await api.post('/auth/login', { email, password, selectedRole });

@@ -15,6 +15,7 @@ type SentNotification = {
   createdAt: string;
   isPopup: boolean;
   popupExpiresAt: string | null;
+  oneTime?: boolean;
 };
 
 export default function ExecutiveNotifications() {
@@ -23,6 +24,7 @@ export default function ExecutiveNotifications() {
   const [audience, setAudience] = useState<typeof AUDIENCES[number]>('all');
   const [category, setCategory] = useState<typeof CATEGORIES[number]>('general');
   const [popupDays, setPopupDays] = useState(3);
+  const [oneTime, setOneTime] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
@@ -129,12 +131,14 @@ export default function ExecutiveNotifications() {
         audience,
         category,
         popupDays,
+        oneTime,
       });
       setTitle('');
       setBody('');
       setAudience('all');
       setCategory('general');
       setPopupDays(3);
+      setOneTime(false);
       setSuccess(true);
       loadSent();
     } catch {
@@ -368,22 +372,39 @@ export default function ExecutiveNotifications() {
           </div>
         </div>
 
-        <div>
-          <label className="text-xs font-bold text-gray-500 mb-1 block" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-            Days to show popup
-          </label>
+        {!oneTime && (
+          <div>
+            <label className="text-xs font-bold text-gray-500 mb-1 block" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+              Days to show popup
+            </label>
+            <input
+              type="number"
+              min={1}
+              max={30}
+              value={popupDays}
+              onChange={(e) => setPopupDays(Number(e.target.value))}
+              className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-base focus:outline-none focus:border-gray-400"
+            />
+            <p className="text-[11px] text-gray-400 mt-1">
+              Students will see this popup each time they log in during this period.
+            </p>
+          </div>
+        )}
+
+        <label className="flex items-start gap-2.5 cursor-pointer">
           <input
-            type="number"
-            min={1}
-            max={30}
-            value={popupDays}
-            onChange={(e) => setPopupDays(Number(e.target.value))}
-            className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-base focus:outline-none focus:border-gray-400"
+            type="checkbox"
+            checked={oneTime}
+            onChange={(e) => setOneTime(e.target.checked)}
+            className="w-4 h-4 mt-0.5 rounded border-gray-300 text-gray-900 focus:ring-gray-400"
           />
-          <p className="text-[11px] text-gray-400 mt-1">
-            Students will see this popup each time they log in during this period.
-          </p>
-        </div>
+          <span className="text-sm text-gray-700" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+            One-time phone notification only
+            <span className="block text-[11px] text-gray-400 font-normal">
+              Sent once to phones that have alerts on. It will not appear as a popup or on the Notifications page.
+            </span>
+          </span>
+        </label>
 
         {error && (
           <p className="text-xs font-semibold text-red-600">{error}</p>
@@ -427,6 +448,11 @@ export default function ExecutiveNotifications() {
                       <span className="text-[10px] font-bold text-gray-500 bg-gray-50 border border-gray-200 px-2 py-0.5 rounded-full capitalize">
                         {n.category}
                       </span>
+                      {n.oneTime && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border bg-blue-50 text-blue-700 border-blue-200">
+                          One-time
+                        </span>
+                      )}
                       {n.isPopup && (
                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border
                           ${popupActive

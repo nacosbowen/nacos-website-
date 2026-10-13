@@ -17,6 +17,7 @@ export const getNotifications = asyncHandler(async (req: Request, res: Response)
   const notifications = await prisma.notification.findMany({
     where: {
       audience: { in: ['all', levelAudience] },
+      oneTime: false,
     },
     orderBy: { createdAt: 'desc' },
     take: 50,
@@ -48,13 +49,13 @@ export const getUnreadCount = asyncHandler(async (req: Request, res: Response) =
   const levelAudience = `level_${user.level}` as NotificationAudience;
 
   const total = await prisma.notification.count({
-    where: { audience: { in: ['all', levelAudience] } },
+    where: { audience: { in: ['all', levelAudience] }, oneTime: false },
   });
 
   const read = await prisma.notificationRead.count({
     where: {
       userId,
-      notification: { audience: { in: ['all', levelAudience] } },
+      notification: { audience: { in: ['all', levelAudience] }, oneTime: false },
     },
   });
 
@@ -96,6 +97,8 @@ export const getActivePopups = asyncHandler(async (req: Request, res: Response) 
       isPopup: true,
       audience: { in: ['all', levelAudience] },
       popupExpiresAt: { gt: new Date() },
+      // one-time notices disappear once this student has seen them
+      NOT: { oneTime: true, reads: { some: { userId } } },
     },
     orderBy: { createdAt: 'desc' },
     take: 10,
@@ -107,7 +110,7 @@ export const getActivePopups = asyncHandler(async (req: Request, res: Response) 
 // POST /api/notifications  (exec/admin)
 export const createNotification = asyncHandler(async (req: Request, res: Response) => {
   const userId = (req as any).userId;
-  const { title, body, audience, category, popupDays } = req.body;
+  const { title, body, audience, category, popupDays, oneTime } = req.body;
 
   if (!title || !body) {
     return res.status(400).json({ message: 'Title and body are required' });
@@ -115,7 +118,9 @@ export const createNotification = asyncHandler(async (req: Request, res: Respons
 
   // Every notification pops up automatically for popupDays days (default 1).
   const days = Number(popupDays) > 0 ? Number(popupDays) : 1;
-  const popupExpiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+const popupExpiresAt = oneTime
+  ? null
+  : new Date(Date.now() + days * 24 * 60 * 60 * 1000);
 
   const notification = await prisma.notification.create({
     data: {
@@ -124,14 +129,15 @@ export const createNotification = asyncHandler(async (req: Request, res: Respons
       audience: audience ?? 'all',
       category: category ?? 'general',
       createdById: userId,
-      isPopup: true,
+      isPopup: !oneTime,
       popupExpiresAt,
+      oneTime: !!oneTime,
     },
   });
 
   // Emit real-time to appropriate rooms
   const targetRoom = audience && audience !== 'all' ? audience : 'level_all';
-  io.to(targetRoom).emit('notification:new', notification);
+if (!oneTime) io.to(targetRoom).emit('notification:new', notification);
 
   // Phone push: runs in the background and never blocks or breaks the broadcast
   (async () => {
@@ -195,6 +201,7 @@ export const markAllRead = asyncHandler(async (req: Request, res: Response) => {
   const unread = await prisma.notification.findMany({
     where: {
       audience: { in: ['all', levelAudience] },
+      oneTime: false,
       reads: { none: { userId } },
     },
     select: { id: true },
