@@ -45,9 +45,12 @@ export default function DinnerTheme() {
   return (
     <div className="max-w-xl mx-auto space-y-6">
       {/* Hero */}
-      <div className="relative rounded-3xl overflow-hidden bg-gray-900 p-8 text-center">
+      <div className="relative rounded-3xl overflow-hidden bg-gray-900 p-8 text-center min-h-[380px] flex items-center justify-center">
         {info.imageUrl && (
-          <img src={info.imageUrl} alt="Dinner" className="absolute inset-0 w-full h-full object-cover opacity-30" />
+                <>
+      <img src={info.imageUrl} alt="Dinner" className="absolute inset-0 w-full h-full object-cover" />
+     <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/75 to-black/90" />
+      </>
         )}
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-4 right-8 w-40 h-40 rounded-full border-4 border-yellow-400" />

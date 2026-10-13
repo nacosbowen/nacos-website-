@@ -153,8 +153,8 @@ export default function RsvpTickets() {
                   <div key={ev.id} className="bg-white rounded-2xl border border-gray-100 p-5
                     shadow-[0_2px_8px_rgba(0,0,0,0.06)]">
                     {ev.imageUrl && (
-                      <img src={`${baseUrl}${ev.imageUrl}`} alt={ev.title}
-                        className="w-full h-32 object-cover rounded-xl mb-4" />
+                    <img src={ev.imageUrl.startsWith('http') ? ev.imageUrl : `${baseUrl}${ev.imageUrl}`} alt={ev.title}
+  className="w-full aspect-video object-cover rounded-xl mb-4 bg-gray-50" />
                     )}
                     <div className="flex items-start gap-4">
                       <div className="flex-1 min-w-0">

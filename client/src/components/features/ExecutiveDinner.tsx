@@ -4,7 +4,7 @@ import api from '@/lib/api';
 
 type DinnerInfo = {
   title: string; date: string; time: string; venue: string; theme: string;
-  dressCode: string; ticketPrice: string; highlights: string;
+  dressCode: string; ticketPrice: string; highlights: string; imageUrl: string | null;
 };
 
 const DEFAULT: DinnerInfo = {
@@ -16,6 +16,7 @@ const DEFAULT: DinnerInfo = {
   dressCode: 'Black tie / formal. Gold accessories encouraged.',
   ticketPrice: '5000',
   highlights: 'Live performances\nAward ceremony\nNetworking\nPhoto booth',
+   imageUrl: null,
 };
 
 export default function ExecutiveDinner() {
@@ -24,6 +25,7 @@ export default function ExecutiveDinner() {
   const [form, setForm] = useState<DinnerInfo>({ ...DEFAULT });
   const [toast, setToast] = useState('');
   const [loaded, setLoaded] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
     useEffect(() => {
     api.get('/dinner')
@@ -65,6 +67,24 @@ export default function ExecutiveDinner() {
       flash(err?.response?.data?.message || 'Failed to save dinner details');
     }
   }
+  async function handleImageUpload(file: File) {
+  setUploadingImage(true);
+  try {
+    const fd = new FormData();
+    fd.append('file', file);
+    const { data } = await api.post('/dinner/image', fd, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    setInfo(prev => ({ ...prev, imageUrl: data.imageUrl }));
+    setForm(prev => ({ ...prev, imageUrl: data.imageUrl }));
+    flash('Image uploaded ✓');
+  } catch (err: any) {
+    flash(err?.response?.data?.message || 'Failed to upload image');
+  } finally {
+    setUploadingImage(false);
+  }
+}
+
   function flash(msg: string) { setToast(msg); setTimeout(() => setToast(''), 3000); }
 
   if (!loaded) return null;
@@ -174,6 +194,23 @@ export default function ExecutiveDinner() {
               </p>
             )}
           </div>
+          <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-[0_2px_4px_rgba(0,0,0,0.04)]">
+  <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3"
+    style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Dinner Image</p>
+  {info.imageUrl && (
+    <img src={info.imageUrl} alt="Dinner"
+      className="w-full aspect-video object-cover rounded-xl mb-3 bg-gray-50" />
+  )}
+  <label className="text-xs text-gray-500 cursor-pointer hover:text-gray-800 font-semibold">
+    {uploadingImage ? 'Uploading...' : info.imageUrl ? 'Change image' : '+ Add image'}
+    <input type="file" accept="image/*" className="hidden"
+      disabled={uploadingImage}
+      onChange={e => {
+        const file = e.target.files?.[0];
+        if (file) handleImageUpload(file);
+      }} />
+  </label>
+</div>
 
           <div className="grid grid-cols-2 gap-3">
             {[
