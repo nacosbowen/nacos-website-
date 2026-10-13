@@ -23,7 +23,7 @@ export default function CommunitiesSection() {
         >
           Ecosystem
         </span>
-        <h2 className="text-4xl font-black text-gray-900">NACOS Communities</h2>
+        <h2 className="text-4xl font-black text-gray-900">Tech Communities to Explore</h2>
         <p className="text-gray-400 mt-3 max-w-md mx-auto text-sm">
           Student-led groups and partnerships within our tech ecosystem
         </p>

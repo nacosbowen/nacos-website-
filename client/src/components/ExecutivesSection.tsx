@@ -8,7 +8,7 @@ const TOP_EXECS = [
 const MAIN_EXECS = [
   { role: 'General Secretary', name: 'Toluwalase Oduyemi', imageUrl: '/executives/toluwalase.jpeg' },
   { role: 'Academic Director', name: 'Afonrinwo Fifunmi', imageUrl: '/executives/fifunmi.jpeg' },
-  { role: 'Financial Secretary', name: 'Itansanogooluwa Agunloye', imageUrl: '' },
+  { role: 'Financial Secretary', name: 'Itansanogooluwa Agunloye', imageUrl: '/executives/it.jpeg' },
   { role: 'Welfare Director', name: 'Victoria Asabor', imageUrl: '/executives/victoria.jpg' },
   { role: 'PRO 1', name: 'Opemipo Oladiti', imageUrl: '/executives/opemipo.png' },
   { role: 'Chief Whip', name: 'Paul Adedeji', imageUrl: '/executives/paul.png' },
@@ -17,7 +17,7 @@ const MAIN_EXECS = [
   { role: 'Social Director (Male)', name: 'Chijioke David', imageUrl: '/executives/chijioke.jpg' },
   { role: 'Social Director (Female)', name: 'Oreoluwa Owobamirin', imageUrl: '/executives/ore.jpeg' },
   { role: 'Software Director', name: 'Emmanuel Odofin', imageUrl: '/executives/Emmanuel.jpeg' },
-  { role: 'Hardware Director', name: 'Zoe Ayilara', imageUrl: '' },
+  { role: 'Hardware Director', name: 'Zoe Ayilara', imageUrl: '/executives/zoe.jpeg' },
   { role: 'CS Commissioner', name: 'Tolulope Adegoke', imageUrl: '/executives/tolu.png' },
   { role: 'SE Commissioner', name: 'Favour Owoyalumo', imageUrl: '/executives/favour.jpg' },
   { role: 'CYB Commissioner', name: 'Zzim Madaki', imageUrl: '/executives/zzim.jpg' },
@@ -27,7 +27,7 @@ const MAIN_EXECS = [
   { role: 'Asst. Welfare Director', name: 'Benedicta Boardman', imageUrl: '/executives/benedicta.jpeg' },
   { role: 'Asst. Academic Director', name: 'Bright Lawal', imageUrl: '' },
   { role: 'Asst. Software Director', name: 'Boluwatito Akinnuoye', imageUrl: '/executives/tito.jpeg' },
-  { role: 'Asst. Hardware Director', name: '', imageUrl: '' },
+  { role: 'Asst. Hardware Director', name: 'OMORUYI Emmanuel', imageUrl: '/executives/emmanuel2.jpg' },
 ];
 
 const BOTTOM_EXECS = [
