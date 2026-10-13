@@ -227,7 +227,7 @@ export default function DashboardShell({
 
       {/* Sidebar */}
       <aside
-        className={`fixed top-0 left-0 z-30 h-screen w-60 flex flex-col transition-transform duration-300
+       className={`fixed top-0 left-0 z-30 h-[100dvh] w-60 flex flex-col transition-transform duration-300
           lg:translate-x-0 lg:sticky lg:z-auto
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
         style={{

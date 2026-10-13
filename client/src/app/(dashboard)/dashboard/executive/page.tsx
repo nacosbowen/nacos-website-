@@ -265,12 +265,12 @@ const statCards = [
                   transition-all duration-300 group-hover:top-3.5 group-hover:left-3.5" />
                 <div className="absolute top-1 left-1 right-[-2.5px] bottom-[-2.5px] bg-gray-200 rounded-2xl
                   transition-all duration-300 group-hover:top-2 group-hover:left-2" />
-                <div className="relative bg-white rounded-2xl border border-gray-100 p-4 h-full
+                <div className="relative bg-white rounded-2xl border border-gray-100 p-3 h-full
                   shadow-[0_4px_6px_rgba(0,0,0,0.04),0_10px_20px_rgba(0,0,0,0.07)]
                   transition-all duration-300
                   group-hover:-translate-y-1 group-hover:shadow-[0_8px_20px_rgba(0,0,0,0.10),0_24px_48px_rgba(0,0,0,0.10)]
-                  flex flex-col gap-3">
-                  <div className="text-gray-400 group-hover:text-gray-800 transition-colors duration-200">
+                  flex flex-col gap-2">
+                 <div className="text-gray-400 group-hover:text-gray-800 transition-colors duration-200 [&>svg]:w-5 [&>svg]:h-5">
                     {item.icon}
                   </div>
                   <div className="flex-1">
@@ -280,14 +280,7 @@ const statCards = [
                     </p>
                     <p className="text-[11px] text-gray-400 mt-1 leading-relaxed">{item.description}</p>
                   </div>
-                  <div className="flex items-center gap-1 text-[11px] font-semibold text-gray-300
-                    group-hover:text-gray-600 transition-colors duration-200"
-                    style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                    Open
-                    <svg viewBox="0 0 16 16" fill="currentColor" className="w-3 h-3 transition-transform duration-200 group-hover:translate-x-0.5">
-                      <path fillRule="evenodd" d="M4.22 4.22a.75.75 0 011.06 0L10 8.94l-4.72 4.72a.75.75 0 01-1.06-1.06L7.94 8.94 4.22 5.28a.75.75 0 010-1.06z" clipRule="evenodd" />
-                    </svg>
-                  </div>
+                 
                 </div>
               </Link>
             ))}
