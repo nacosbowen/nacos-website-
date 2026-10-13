@@ -1,7 +1,7 @@
 'use client';
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import api from '@/lib/api';
+import api, { refreshAccessToken } from '@/lib/api';
 import { setToken } from '@/lib/token';
 import { socket } from '@/lib/socket';
 
@@ -64,8 +64,7 @@ const popup = popupQueue[0] ?? null;
 
 const restoreSession = useCallback(async () => {
   const attempt = async () => {
-    const { data: r } = await api.post('/auth/refresh');
-    setToken(r.accessToken);
+   await refreshAccessToken();
     const { data: me } = await api.get('/auth/me');
     setUser(me);
 
@@ -114,23 +113,16 @@ useEffect(() => {
     socket.off('connect', handleConnect);
   };
 }, [user]);
-// Fetch all active broadcast popups once per login/session. They are shown
-// one at a time; dismissing one reveals the next. Nothing is marked as read,
-// so they all show again on the next login until they expire.
-const isStudentView = activeRole === 'student';
 
-useEffect(() => {
-  if (!user || !isStudentView) {
-    setPopupQueue([]);
-    return;
-  }
+// Popups are fetched only right after a student logs in, never on refresh.
+const loadPopups = () => {
   api.get('/notifications/popups')
     .then((r) => {
       const list = Array.isArray(r.data) ? r.data : r.data?.popups ?? [];
       setPopupQueue(list);
     })
     .catch(() => {});
-}, [user?.id, isStudentView]);
+};
 
 const dismissPopup = () => setPopupQueue((q) => q.slice(1));
 
@@ -140,6 +132,7 @@ const login = async (email: string, password: string, selectedRole: string): Pro
   setUser(data.user);
   setOverrideRole(selectedRole);
   localStorage.setItem(ACTIVE_ROLE_KEY, selectedRole);
+    if (selectedRole === 'student') loadPopups();
   return data.user;
 };
 
@@ -171,6 +164,7 @@ const adminLogin = async (email: string, password: string): Promise<AuthUser> =>
 const logout = async () => {
   setToken(null);
   setUser(null);
+    setPopupQueue([]);
   localStorage.removeItem(ACTIVE_ROLE_KEY);
   router.push('/login');
   try { await api.post('/auth/logout'); } catch {}

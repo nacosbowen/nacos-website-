@@ -71,3 +71,16 @@ export const updateSuggestionStatus = asyncHandler(async (req: Request, res: Res
   });
   return res.json(suggestion);
 });
+
+// DELETE /api/suggestions/:id  (exec/admin)
+export const deleteSuggestion = asyncHandler(async (req: Request, res: Response) => {
+  const { count } = await prisma.suggestion.deleteMany({
+    where: { id: req.params.id },
+  });
+
+  if (count === 0) {
+    return res.status(404).json({ message: 'Suggestion not found' });
+  }
+
+  return res.json({ ok: true });
+});

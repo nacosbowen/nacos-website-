@@ -21,6 +21,7 @@ import dinnerRoutes from './routes/dinner.routes';
 import examRoutes from './routes/exam.routes';
 import archiveRoutes from './routes/archive.routes';
 import pushRoutes from './routes/push.routes';
+import statsRoutes from './routes/stats.routes';
 
 const app = express();
 app.set('trust proxy', 1);
@@ -75,6 +76,7 @@ app.use('/api/dinner', dinnerRoutes);
 app.use('/api/exams', examRoutes);
 app.use('/api/archive', archiveRoutes);
 app.use('/api/push', pushRoutes);
+app.use('/api/stats', statsRoutes);
 
 // Socket.io: join level rooms on connect
 io.on('connection', (socket) => {

@@ -8,7 +8,7 @@ import { sendVerificationEmail, sendPasswordResetEmail } from '../lib/email';
 
 const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET!;
 const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET!;
-const ACCESS_EXPIRES = '15m';
+const ACCESS_EXPIRES = '30m';
 const REFRESH_EXPIRES_MS = 7 * 24 * 60 * 60 * 1000;
 
 function generateCode(): string {

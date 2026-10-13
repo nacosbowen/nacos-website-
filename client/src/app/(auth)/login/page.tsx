@@ -29,24 +29,40 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: FormEvent) => {
+    const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
-    try {
+    const attempt = async () => {
       await login(email, password, selectedRole);
       router.push(ROLE_PATH[selectedRole]);
-      // Intentionally do NOT reset loading here — keep the button showing
-      // "Signing in..." until the navigation actually takes over, so it
-      // doesn't flash back to "Sign In" for a moment beforehand.
+    };
+
+    try {
+      try {
+        await attempt();
+      } catch (err: any) {
+        const status = err?.response?.status;
+        // A 4xx is a real answer from the server (wrong password, unverified email,
+        // too many attempts), so don't retry.
+        if (status && status < 500) throw err;
+        // Network error, timeout or 5xx: wait a moment and retry once.
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+        await attempt();
+      }
+      // Keep loading on success so the button stays on "Signing in..." until navigation.
     } catch (err: any) {
-      const message = err?.response?.data?.message || 'Login failed. Check your details.';
+      const status = err?.response?.status;
+      const message =
+        status && status < 500
+          ? err.response.data?.message || 'Login failed. Check your details.'
+          : 'We could not reach the server. Please try again in a moment.';
       setError(message);
       setLoading(false);
     }
   };
-
+  
   return (
     <div className="min-h-screen flex items-center justify-center px-4 bg-[#f7f7f7] overflow-x-hidden">
       <div className="w-full max-w-md">

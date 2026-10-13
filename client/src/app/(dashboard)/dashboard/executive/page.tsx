@@ -2,6 +2,8 @@
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import DashboardShell from '@/components/dashboard/DashboardShell';
+import { useState, useEffect } from 'react';
+import api from '@/lib/api';
 
 const ACTIONS = [
   {
@@ -50,18 +52,11 @@ const ACTIONS = [
   },
 ];
 
-const STATS = [
-  { label: 'Total Students', value: '1,000+', sub: 'across all departments' },
-  { label: 'Active Notifications', value: '—', sub: 'sent this semester' },
-  { label: 'Upcoming Events', value: '—', sub: 'scheduled' },
-  { label: 'Pending Suggestions', value: '—', sub: 'awaiting review' },
-];
-
 const DEPARTMENTS = [
-  { code: 'CS', name: 'Computer Science' },
-  { code: 'SE', name: 'Software Engineering' },
-  { code: 'CYB', name: 'Cyber Security' },
-  { code: 'IFT', name: 'Information Technology' },
+  { code: 'CS', key: 'CSC', name: 'Computer Science' },
+  { code: 'SE', key: 'SEN', name: 'Software Engineering' },
+  { code: 'CYB', key: 'CYB', name: 'Cyber Security' },
+  { code: 'IFT', key: 'IFT', name: 'Information Technology' },
 ];
 
 const FEATURES = [
@@ -72,46 +67,10 @@ const FEATURES = [
     icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="w-7 h-7"><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5m-9-6h.008v.008H12v-.008zM12 15h.008v.008H12V15zm0 2.25h.008v.008H12v-.008zM9.75 15h.008v.008H9.75V15zm0 2.25h.008v.008H9.75v-.008zM7.5 15h.008v.008H7.5V15zm0 2.25h.008v.008H7.5v-.008zm6.75-4.5h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008V15zm0 2.25h.008v.008h-.008v-.008zm2.25-4.5h.008v.008H16.5v-.008zm0 2.25h.008v.008H16.5V15z" /></svg>,
   },
   {
-    href: '/dashboard/executive/events',
-    label: 'NACOS Calendar Events',
-    description: 'All upcoming NACOS events, workshops, and competitions in one place',
-    icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="w-7 h-7"><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" /></svg>,
-  },
-  {
-    href: '/dashboard/executive/suggestions',
-    label: 'Suggestion Box',
-    description: 'Send anonymous feedback or suggestions to the NACOS executives',
-    icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="w-7 h-7"><path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" /></svg>,
-  },
-  {
     href: '/dashboard/executive/voting',
     label: 'NACOS Voting',
     description: 'Cast your vote in NACOS elections and polls securely',
     icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="w-7 h-7"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
-  },
-  {
-    href: '/dashboard/executive/past-questions',
-    label: 'Past Questions',
-    description: 'Download exam past questions for your level and department',
-    icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="w-7 h-7"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>,
-  },
-  {
-    href: '/dashboard/executive/cgpa',
-    label: 'CGPA Calculator',
-    description: 'Calculate and track your CGPA across all semesters',
-    icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="w-7 h-7"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 15.75V18m-7.5-6.75h.008v.008H8.25v-.008zm0 2.25h.008v.008H8.25V13.5zm0 2.25h.008v.008H8.25v-.008zm0 2.25h.008v.008H8.25V18zm2.498-6.75h.007v.008h-.007v-.008zm0 2.25h.007v.008h-.007V13.5zm0 2.25h.007v.008h-.007v-.008zm0 2.25h.007v.008h-.007V18zm2.504-6.75h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008V13.5zm0 2.25h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008V18zm2.498-6.75h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008V13.5zM8.25 6h7.5v2.25h-7.5V6zM12 2.25c-1.892 0-3.758.11-5.593.322C5.307 2.7 4.5 3.65 4.5 4.757V19.5a2.25 2.25 0 002.25 2.25h10.5a2.25 2.25 0 002.25-2.25V4.757c0-1.108-.806-2.057-1.907-2.185A48.507 48.507 0 0012 2.25z" /></svg>,
-  },
-  {
-    href: '/dashboard/executive/id-card',
-    label: 'ID Card',
-    description: 'View and download your NACOS digital student ID card',
-    icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="w-7 h-7"><path strokeLinecap="round" strokeLinejoin="round" d="M15 9h3.75M15 12h3.75M15 15h3.75M4.5 19.5h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5zm6-10.125a1.875 1.875 0 11-3.75 0 1.875 1.875 0 013.75 0zm1.294 6.336a6.721 6.721 0 01-3.17.789 6.721 6.721 0 01-3.168-.789 3.376 3.376 0 016.338 0z" /></svg>,
-  },
-  {
-    href: '/dashboard/executive/nacos-ai',
-    label: 'NACOS AI',
-    description: 'Your AI study assistant — ask questions, get summaries, study smarter',
-    icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="w-7 h-7"><path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" /></svg>,
   },
   {
     href: '/dashboard/executive/dinner',
@@ -146,7 +105,25 @@ const FEATURES = [
 ];
 
 export default function ExecutiveDashboard() {
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
+const [stats, setStats] = useState<{
+  students: number; notifications: number; upcomingEvents: number; suggestions: number;
+  departments: Record<string, number>;
+} | null>(null);
+
+useEffect(() => {
+  if (authLoading) return;
+  api.get('/stats').then(r => setStats(r.data)).catch(() => {});
+}, [authLoading]);
+
+const show = (n?: number) => (n === undefined ? '—' : n.toLocaleString());
+
+const statCards = [
+  { label: 'Total Students', value: show(stats?.students), sub: 'in the NACOS registry' },
+  { label: 'Notifications Sent', value: show(stats?.notifications), sub: 'broadcasts so far' },
+  { label: 'Upcoming Events', value: show(stats?.upcomingEvents), sub: 'scheduled' },
+  { label: 'Suggestions', value: show(stats?.suggestions), sub: 'received from students' },
+];
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
@@ -188,7 +165,7 @@ export default function ExecutiveDashboard() {
 
         {/* Stats grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {STATS.map((stat) => (
+          {statCards.map((stat) => (
             <div key={stat.label} className="bg-white rounded-2xl border border-gray-100 px-4 py-4
               shadow-[0_2px_4px_rgba(0,0,0,0.04),0_6px_12px_rgba(0,0,0,0.06)]">
               <p className="text-2xl font-black text-gray-900" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
@@ -198,6 +175,34 @@ export default function ExecutiveDashboard() {
               <p className="text-[10px] text-gray-400 mt-0.5">{stat.sub}</p>
             </div>
           ))}
+        </div>
+
+  {/* Departments overview */}
+        <div>
+          <h3 className="text-xs font-bold text-gray-400 tracking-widest uppercase mb-4"
+            style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+            Departments Under NACOS
+          </h3>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {DEPARTMENTS.map((dept) => (
+              <div key={dept.code} className="bg-white rounded-2xl border border-gray-100 px-4 py-4
+                shadow-[0_2px_4px_rgba(0,0,0,0.04),0_6px_12px_rgba(0,0,0,0.06)]">
+                <p className="text-xs font-bold tracking-widest uppercase text-gray-300 mb-1"
+                  style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                  {dept.code}
+                </p>
+                <p className="text-sm font-black text-gray-800 leading-snug"
+                  style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                  {dept.name}
+                </p>
+               <p className="text-2xl font-black text-gray-900 mt-3"
+  style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+  {show(stats?.departments?.[dept.key])}
+</p>
+<p className="text-[10px] text-gray-400">students</p>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Actions */}
@@ -246,35 +251,12 @@ export default function ExecutiveDashboard() {
           </div>
         </div>
 
-        {/* Departments overview */}
-        <div>
-          <h3 className="text-xs font-bold text-gray-400 tracking-widest uppercase mb-4"
-            style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-            Departments Under NACOS
-          </h3>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {DEPARTMENTS.map((dept) => (
-              <div key={dept.code} className="bg-white rounded-2xl border border-gray-100 px-4 py-4
-                shadow-[0_2px_4px_rgba(0,0,0,0.04),0_6px_12px_rgba(0,0,0,0.06)]">
-                <p className="text-xs font-bold tracking-widest uppercase text-gray-300 mb-1"
-                  style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                  {dept.code}
-                </p>
-                <p className="text-sm font-black text-gray-800 leading-snug"
-                  style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                  {dept.name}
-                </p>
-                <div className="mt-3 h-1 w-6 bg-gray-200 rounded-full" />
-              </div>
-            ))}
-          </div>
-        </div>
-
+      
         {/* Quick Access */}
         <div>
           <h3 className="text-xs font-bold text-gray-400 tracking-widest uppercase mb-5"
             style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-            Quick Access
+                        Programs & Records
           </h3>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 items-stretch">
             {FEATURES.map((item) => (

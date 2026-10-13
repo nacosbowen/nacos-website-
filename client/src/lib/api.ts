@@ -11,12 +11,24 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-let isRefreshing = false;
-let failedQueue: Array<{ resolve: (t: string) => void; reject: (e: unknown) => void }> = [];
+// One shared refresh for the whole app. If several callers need a new access
+// token at the same time (page load, expired token, dev double-mount), they all
+// wait on the same request, so the refresh cookie is only rotated once.
+let refreshPromise: Promise<string> | null = null;
 
-function processQueue(error: unknown, token: string | null) {
-  failedQueue.forEach((p) => (error ? p.reject(error) : p.resolve(token!)));
-  failedQueue = [];
+export function refreshAccessToken(): Promise<string> {
+  if (!refreshPromise) {
+    refreshPromise = axios
+      .post(`${API_URL}/auth/refresh`, {}, { withCredentials: true })
+      .then((res) => {
+        setToken(res.data.accessToken);
+        return res.data.accessToken as string;
+      })
+      .finally(() => {
+        refreshPromise = null;
+      });
+  }
+  return refreshPromise;
 }
 
 const AUTH_ENDPOINTS = ['/auth/login', '/auth/signup', '/auth/admin-login', '/auth/refresh'];
@@ -33,26 +45,21 @@ api.interceptors.response.use(
 
     if (
       error.response?.status === 401 &&
+      original &&
       !original._retry &&
-      !isAuthEndpoint(original?.url)
+      !isAuthEndpoint(original.url)
     ) {
-      if (isRefreshing) {
-        return new Promise<string>((resolve, reject) => { failedQueue.push({ resolve, reject }); })
-          .then((token) => { original.headers.Authorization = `Bearer ${token}`; return api(original); });
-      }
       original._retry = true;
-      isRefreshing = true;
       try {
-        const { data } = await axios.post(`${API_URL}/auth/refresh`, {}, { withCredentials: true });
-        setToken(data.accessToken);
-        processQueue(null, data.accessToken);
-        original.headers.Authorization = `Bearer ${data.accessToken}`;
+        const token = await refreshAccessToken();
+        original.headers.Authorization = `Bearer ${token}`;
         return api(original);
-      } catch (err) {
-        processQueue(err, null);
-        setToken(null);
+      } catch (err: any) {
+        const status = err?.response?.status;
+        // Only drop the token when the session is really invalid, not on a temporary error
+        if (status === 401 || status === 403) setToken(null);
         return Promise.reject(err);
-      } finally { isRefreshing = false; }
+      }
     }
     return Promise.reject(error);
   }

@@ -6,7 +6,6 @@ type Suggestion = {
   id: string;
   body: string;
   anonymous: boolean;
-  status: 'pending' | 'reviewed' | 'resolved';
   createdAt: string;
   user: { fullName: string; matricNumber: string; level: number } | null;
 };
@@ -22,10 +21,17 @@ function timeAgo(ts: string) {
   return `${days}d ago`;
 }
 
+function splitCategory(body: string) {
+  const m = body.match(/^\[([^\]]+)\]\s*([\s\S]*)$/);
+  return m ? { category: m[1], text: m[2] } : { category: 'General', text: body };
+}
+
 export default function ExecutiveSuggestions() {
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
-  const [filter, setFilter] = useState<'all' | 'pending' | 'reviewed' | 'resolved'>('all');
   const [loading, setLoading] = useState(true);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     api.get('/suggestions').then(r => {
@@ -34,15 +40,19 @@ export default function ExecutiveSuggestions() {
     }).catch(() => setLoading(false));
   }, []);
 
-  async function updateStatus(id: string, status: 'pending' | 'reviewed' | 'resolved') {
+  async function handleDelete(id: string) {
+    setDeleting(true);
+    setError('');
     try {
-      await api.patch(`/suggestions/${id}/status`, { status });
-      setSuggestions(prev => prev.map(s => s.id === id ? { ...s, status } : s));
-    } catch { /* ignore */ }
+      await api.delete(`/suggestions/${id}`);
+      setSuggestions(prev => prev.filter(s => s.id !== id));
+      setDeleteId(null);
+    } catch {
+      setError('Failed to delete suggestion. Please try again.');
+    } finally {
+      setDeleting(false);
+    }
   }
-
-  const filtered = suggestions.filter(s => filter === 'all' || s.status === filter);
-  const pending = suggestions.filter(s => s.status === 'pending').length;
 
   if (loading) {
     return (
@@ -54,21 +64,50 @@ export default function ExecutiveSuggestions() {
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
-      <div className="flex items-start justify-between flex-wrap gap-3">
-        <div>
-          <h2 className="text-xl font-black text-gray-900" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-            Suggestions Inbox
-          </h2>
-          <p className="text-sm text-gray-400 mt-0.5">Anonymous student feedback</p>
-        </div>
-        {pending > 0 && (
-          <div className="flex items-center gap-2 bg-gray-900 text-white px-4 py-2 rounded-full">
-            <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
-            <span className="text-xs font-bold" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-              {pending} pending
-            </span>
+      {deleteId && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
+          onClick={() => { if (!deleting) setDeleteId(null); }}
+        >
+          <div
+            className="bg-white rounded-2xl p-6 w-full max-w-xs shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-base font-black text-gray-900 mb-2"
+              style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+              Delete suggestion?
+            </h3>
+            <p className="text-sm text-gray-500 mb-5">
+              This suggestion will be removed permanently. This can't be undone.
+            </p>
+            {error && <p className="text-xs font-semibold text-red-600 mb-3">{error}</p>}
+            <div className="flex gap-2">
+              <button
+                onClick={() => setDeleteId(null)}
+                disabled={deleting}
+                className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 transition disabled:opacity-50"
+                style={{ fontFamily: "'Space Grotesk', sans-serif" }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleDelete(deleteId)}
+                disabled={deleting}
+                className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white bg-red-500 hover:bg-red-600 transition disabled:opacity-50"
+                style={{ fontFamily: "'Space Grotesk', sans-serif" }}
+              >
+                {deleting ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
           </div>
-        )}
+        </div>
+      )}
+
+      <div>
+        <h2 className="text-xl font-black text-gray-900" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+          Suggestions Inbox
+        </h2>
+        <p className="text-sm text-gray-400 mt-0.5">Anonymous student feedback</p>
       </div>
 
       {suggestions.length === 0 ? (
@@ -85,84 +124,41 @@ export default function ExecutiveSuggestions() {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-3 gap-3">
-            {[
-              { label: 'Total', value: suggestions.length },
-              { label: 'Pending', value: pending },
-              { label: 'Resolved', value: suggestions.filter(s => s.status === 'resolved').length },
-            ].map(stat => (
-              <div key={stat.label} className="bg-white rounded-2xl border border-gray-100 px-4 py-3 text-center
-                shadow-[0_1px_4px_rgba(0,0,0,0.04)]">
-                <p className="text-2xl font-black text-gray-900" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                  {stat.value}
-                </p>
-                <p className="text-xs font-semibold text-gray-500 mt-0.5">{stat.label}</p>
-              </div>
-            ))}
-          </div>
-
-          <div className="flex gap-2 flex-wrap">
-            {(['all', 'pending', 'reviewed', 'resolved'] as const).map(s => (
-              <button key={s} onClick={() => setFilter(s)}
-                className={`px-3.5 py-1.5 rounded-full text-xs font-bold border transition-all capitalize
-                  ${filter === s ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'}`}
-                style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                {s}
-              </button>
-            ))}
-          </div>
+          <p className="text-xs font-bold text-gray-400 tracking-widest uppercase"
+            style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+            Suggestions · {suggestions.length}
+          </p>
 
           <div className="space-y-3">
-            {filtered.length === 0 ? (
-              <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center">
-                <p className="text-sm text-gray-400">No {filter} suggestions</p>
-              </div>
-            ) : filtered.map(s => (
-              <div key={s.id} className={`bg-white rounded-2xl border p-5 shadow-[0_2px_4px_rgba(0,0,0,0.04)]
-                ${s.status !== 'pending' ? 'border-gray-100 opacity-75' : 'border-gray-200'}`}>
-                <div className="flex items-start justify-between gap-3 mb-3">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className={`text-[10px] font-bold border px-2.5 py-0.5 rounded-full
-                      ${s.status === 'pending' ? 'bg-yellow-50 text-yellow-700 border-yellow-200'
-                        : s.status === 'reviewed' ? 'bg-blue-50 text-blue-700 border-blue-200'
-                        : 'bg-green-50 text-green-700 border-green-200'}`}
-                      style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                      {s.status}
-                    </span>
-                    <span className="text-xs text-gray-400">{timeAgo(s.createdAt)}</span>
-                    {!s.anonymous && s.user && (
-                      <span className="text-xs text-gray-400">
-                        {s.user.fullName} · {s.user.level}L
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex gap-1.5 flex-shrink-0">
-                    {s.status !== 'reviewed' && (
-                      <button onClick={() => updateStatus(s.id, 'reviewed')}
-                        className="px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 border border-blue-200 text-xs font-bold hover:bg-blue-100 transition"
-                        style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                        Review
-                      </button>
-                    )}
-                    {s.status !== 'resolved' && (
-                      <button onClick={() => updateStatus(s.id, 'resolved')}
-                        className="px-2.5 py-1 rounded-lg bg-green-50 text-green-700 border border-green-200 text-xs font-bold hover:bg-green-100 transition"
-                        style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                        Resolve
-                      </button>
-                    )}
-                    {s.status !== 'pending' && (
-                      <button onClick={() => updateStatus(s.id, 'pending')}
-                        className="px-2.5 py-1 rounded-lg bg-gray-50 text-gray-500 border border-gray-200 text-xs font-bold hover:bg-gray-100 transition"
-                        style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                        Reopen
-                      </button>
-                    )}
-                  </div>
-                </div>
-                <p className="text-sm text-gray-700 leading-relaxed">{s.body}</p>
-              </div>
-            ))}
+          {suggestions.map(s => {
+  const { category, text } = splitCategory(s.body);
+  return (
+    <div key={s.id}
+      className="bg-white rounded-2xl border border-gray-200 p-5 shadow-[0_2px_4px_rgba(0,0,0,0.04)]">
+      <div className="flex items-start justify-between gap-3">
+        <h3 className="text-sm font-black text-gray-900"
+          style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+          {category}
+        </h3>
+        <button
+          onClick={() => { setError(''); setDeleteId(s.id); }}
+          className="flex-shrink-0 text-xs font-semibold text-gray-400 hover:text-red-500 transition"
+        >
+          Delete
+        </button>
+      </div>
+      <div className="flex items-center gap-2 flex-wrap mt-0.5 mb-3">
+        <span className="text-xs text-gray-400">{timeAgo(s.createdAt)}</span>
+        {!s.anonymous && s.user && (
+          <span className="text-xs text-gray-400">
+            {s.user.fullName} · {s.user.level}L
+          </span>
+        )}
+      </div>
+      <p className="text-sm text-gray-700 leading-relaxed">{text}</p>
+    </div>
+  );
+})}
           </div>
         </>
       )}
