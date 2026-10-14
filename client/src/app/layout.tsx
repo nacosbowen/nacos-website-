@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
+import NextTopLoader from 'nextjs-toploader';
 import { Providers } from './providers';
 import TechBackground from '@/components/TechBackground';
 
@@ -20,6 +21,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body>
+     <NextTopLoader color="#111827" height={4} showSpinner={false} />
         <TechBackground />
         <Providers>{children}</Providers>
       </body>
