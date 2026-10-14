@@ -1,6 +1,6 @@
 export default function DashboardSkeleton() {
   return (
-    <div className="flex min-h-screen bg-[#f5f5f5]" aria-busy="true" aria-label="Loading your dashboard">
+    <div className="relative z-10 flex min-h-screen bg-[#f5f5f5]" aria-busy="true" aria-label="Loading your dashboard">
       {/* Sidebar (desktop only, like the real one) */}
       <aside
         className="hidden lg:flex w-60 flex-col sticky top-0 h-screen"
@@ -34,14 +34,14 @@ export default function DashboardSkeleton() {
       {/* Main column */}
       <div className="flex-1 flex flex-col min-w-0">
         <header className="h-14 bg-white border-b border-gray-100 flex items-center px-4 lg:px-6 gap-4">
-          <div className="lg:hidden w-8 h-8 rounded-lg bg-gray-100 animate-pulse" />
-          <div className="h-4 w-36 rounded bg-gray-200 animate-pulse" />
+          <div className="lg:hidden w-8 h-8 rounded-lg bg-gray-200 animate-pulse" />
+          <div className="h-4 w-36 rounded bg-gray-300 animate-pulse" />
           <div className="ml-auto flex items-center gap-3">
             <div className="hidden sm:block space-y-1.5">
-              <div className="h-2.5 w-24 rounded bg-gray-200 animate-pulse" />
-              <div className="h-2 w-14 rounded bg-gray-100 animate-pulse ml-auto" />
+              <div className="h-2.5 w-24 rounded bg-gray-300 animate-pulse" />
+              <div className="h-2 w-14 rounded bg-gray-200 animate-pulse ml-auto" />
             </div>
-            <div className="w-8 h-8 rounded-full bg-gray-200 animate-pulse" />
+            <div className="w-8 h-8 rounded-full bg-gray-300 animate-pulse" />
           </div>
         </header>
 
@@ -60,14 +60,14 @@ export default function DashboardSkeleton() {
 
             {/* Quick access cards */}
             <div>
-              <div className="h-3 w-24 rounded bg-gray-200 animate-pulse mb-5" />
+              <div className="h-3 w-24 rounded bg-gray-300 animate-pulse mb-5" />
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                 {Array.from({ length: 8 }).map((_, i) => (
-                  <div key={i} className="bg-white rounded-2xl border border-gray-100 p-3 space-y-2.5">
-                    <div className="w-5 h-5 rounded bg-gray-200 animate-pulse" />
-                    <div className="h-3.5 w-3/4 rounded bg-gray-200 animate-pulse" />
-                    <div className="h-2.5 w-full rounded bg-gray-100 animate-pulse" />
-                    <div className="h-2.5 w-2/3 rounded bg-gray-100 animate-pulse" />
+                  <div key={i} className="bg-white rounded-2xl border border-gray-200 p-3 space-y-2.5">
+                    <div className="w-5 h-5 rounded bg-gray-300 animate-pulse" />
+                    <div className="h-3.5 w-3/4 rounded bg-gray-300 animate-pulse" />
+                    <div className="h-2.5 w-full rounded bg-gray-200 animate-pulse" />
+                    <div className="h-2.5 w-2/3 rounded bg-gray-200 animate-pulse" />
                   </div>
                 ))}
               </div>

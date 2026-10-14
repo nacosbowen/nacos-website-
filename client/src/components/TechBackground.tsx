@@ -35,7 +35,7 @@ export default function TechBackground() {
     x: Math.random() * 100, y: Math.random() * 100,
     size: 22 + Math.random() * 28,
     rotation: Math.random() * 50 - 25,
-    opacity: 0.045 + Math.random() * 0.055,
+    opacity: 0.025 + Math.random() * 0.03,
   })), []);
 
   if (!mounted) return null;
