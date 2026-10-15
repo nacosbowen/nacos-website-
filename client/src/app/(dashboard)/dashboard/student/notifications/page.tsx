@@ -20,6 +20,7 @@ export default function StudentNotifications() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [markingAll, setMarkingAll] = useState(false);
+  const [highlightId, setHighlightId] = useState<string | null>(null);
 
   const fetchNotifications = () => {
     api.get('/notifications').then(r => {
@@ -31,6 +32,18 @@ export default function StudentNotifications() {
   useEffect(() => {
     fetchNotifications();
   }, []);
+  useEffect(() => {
+  const id = new URLSearchParams(window.location.search).get('highlight');
+  if (id) setHighlightId(id);
+}, []);
+
+useEffect(() => {
+  if (!highlightId || loading) return;
+  const el = document.getElementById(`notif-${highlightId}`);
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  const t = setTimeout(() => setHighlightId(null), 4000);
+  return () => clearTimeout(t);
+}, [highlightId, loading]);
 
   useEffect(() => {
     if (!user?.level) return;
@@ -122,9 +135,11 @@ export default function StudentNotifications() {
             <div className="space-y-3">
               {notifications.map(n => (
                 <div key={n.id}
-                  onClick={() => !n.isRead && handleMarkRead(n.id)}
-                  className={`bg-white rounded-2xl border p-4 flex gap-3 shadow-[0_2px_4px_rgba(0,0,0,0.04)] transition
-                    ${n.isRead ? 'border-gray-100' : 'border-gray-300 cursor-pointer hover:border-gray-400'}`}>
+  id={`notif-${n.id}`}
+  onClick={() => !n.isRead && handleMarkRead(n.id)}
+  className={`bg-white rounded-2xl border p-4 flex gap-3 shadow-[0_2px_4px_rgba(0,0,0,0.04)] transition
+    ${highlightId === n.id ? 'ring-2 ring-yellow-400' : ''}
+    ${n.isRead ? 'border-gray-100' : 'border-gray-300 cursor-pointer hover:border-gray-400'}`}>
                   {!n.isRead && (
                     <span className="w-2 h-2 rounded-full bg-gray-900 flex-shrink-0 mt-1.5" />
                   )}

@@ -161,7 +161,7 @@ if (!oneTime) io.to(targetRoom).emit('notification:new', notification);
       const dead = await sendPush(subs, {
         title,
         body: text.length > 140 ? text.slice(0, 137) + '...' : text,
-        url: '/dashboard/student/notifications',
+        url: `/dashboard/student/notifications?highlight=${notification.id}`,
       });
 
       if (dead.length) {
