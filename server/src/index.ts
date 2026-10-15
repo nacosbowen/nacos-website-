@@ -7,6 +7,8 @@ import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
 import path from 'path';
+import jwt from 'jsonwebtoken';
+import { prisma } from './lib/prisma';
 
 import authRoutes from './routes/auth.routes';
 import eventsRoutes from './routes/events.routes';
@@ -81,16 +83,37 @@ app.use('/api/push', pushRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/dev-applications', devApplicationsRoutes);
 
-// Socket.io: join level rooms on connect
-io.on('connection', (socket) => {
-  socket.on('join', ({ level }: { level: number }) => {
-    socket.join(`level:${level}`);
-    socket.join('level:all');
-  });
+// Socket.io: verify the access token before connecting
+io.use((socket, next) => {
+  const token = socket.handshake.auth?.token;
+  if (!token) return next(new Error('Unauthorized'));
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET!) as { sub: string };
+    socket.data.userId = decoded.sub;
+    next();
+  } catch (err: any) {
+    next(new Error(err?.name === 'TokenExpiredError' ? 'TokenExpired' : 'Unauthorized'));
+  }
+});
 
-  socket.on('disconnect', () => {
-    // cleanup handled by socket.io automatically
-  });
+// The server decides which rooms a student joins, from the database
+io.on('connection', async (socket) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: socket.data.userId },
+      select: { level: true, departmentId: true },
+    });
+    if (!user) return socket.disconnect(true);
+
+    socket.join([
+      'level:all',
+      `level:${user.level}`,
+      `level:${user.level}:dept:${user.departmentId}`,
+    ]);
+  } catch (err) {
+    console.error('Socket join failed:', err);
+    socket.disconnect(true);
+  }
 });
 
 app.get('/health', (_req, res) => res.json({ status: 'ok' }));

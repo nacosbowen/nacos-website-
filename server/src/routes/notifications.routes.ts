@@ -6,10 +6,15 @@ import {
   getActivePopups,
   getSentNotifications,
   createNotification,
+  createCourseRepNotification,
   deleteNotification,
   updateNotification,
   markRead,
   markAllRead,
+  getMyCourseRepClasses,
+  getMyCourseRepSent,
+  deleteMyCourseRepNotification,
+  
 } from '../controllers/notifications.controller';
 import { requireAuth } from '../middleware/auth.middleware';
 import { requireRole } from '../middleware/role.middleware';
@@ -28,5 +33,9 @@ router.patch('/read-all', markAllRead);
 router.patch('/:id/read', markRead);
 router.patch('/:id', requireRole('executive', 'admin'), updateNotification);
 router.delete('/:id', requireRole('executive', 'admin'), deleteNotification);
+router.post('/course-rep', requireRole('course_rep'), createCourseRepNotification);
+router.get('/course-rep/classes', requireRole('course_rep'), getMyCourseRepClasses);
+router.get('/course-rep/sent', requireRole('course_rep'), getMyCourseRepSent);
+router.delete('/course-rep/:id', requireRole('course_rep'), deleteMyCourseRepNotification);
 
 export default router;

@@ -23,6 +23,7 @@ export interface PopupNotification {
   body: string;
   category: string;
   oneTime?: boolean;
+  senderType?: 'executive' | 'course_rep';
 }
 
 interface AuthContextValue {

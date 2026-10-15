@@ -42,6 +42,11 @@ enum DevApplicationStatus {
   rejected
 }
 
+enum NotificationSender {
+  executive
+  course_rep
+}
+
 
 model StudentRegistry {
   id           Int     @id @default(autoincrement())
@@ -161,8 +166,10 @@ model Notification {
   isPopup        Boolean              @default(false)
   popupExpiresAt DateTime?
   oneTime        Boolean              @default(false)
+  departmentId   Int?
 
   reads NotificationRead[]
+  senderType NotificationSender @default(executive)
 }
 
 model NotificationRead {

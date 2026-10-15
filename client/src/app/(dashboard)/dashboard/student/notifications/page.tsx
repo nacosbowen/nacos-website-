@@ -11,6 +11,7 @@ type Notification = {
   body: string;
   audience: string;
   category: string;
+  senderType?: 'executive' | 'course_rep';
   createdAt: string;
   isRead: boolean;
 };
@@ -163,6 +164,14 @@ export default function StudentNotifications() {
                       </span>
                       <span className="text-[10px] font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full capitalize">
                         {n.category}
+                      </span>
+                      <span
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          n.senderType === 'course_rep'
+                            ? 'bg-gray-900 text-white'
+                            : 'border border-gray-300 text-gray-600'
+                        }`}>
+                        {n.senderType === 'course_rep' ? 'Course Rep' : 'Executive'}
                       </span>
                     </div>
                     <p className="text-sm text-gray-500 leading-relaxed">{n.body}</p>
