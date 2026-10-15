@@ -32,18 +32,19 @@ export default function StudentNotifications() {
   useEffect(() => {
     fetchNotifications();
   }, []);
-  useEffect(() => {
-  const id = new URLSearchParams(window.location.search).get('highlight');
-  if (id) setHighlightId(id);
-}, []);
 
-useEffect(() => {
-  if (!highlightId || loading) return;
-  const el = document.getElementById(`notif-${highlightId}`);
-  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  const t = setTimeout(() => setHighlightId(null), 4000);
-  return () => clearTimeout(t);
-}, [highlightId, loading]);
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get('highlight');
+    if (id) setHighlightId(id);
+  }, []);
+
+  useEffect(() => {
+    if (!highlightId || loading) return;
+    const el = document.getElementById(`notif-${highlightId}`);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const t = setTimeout(() => setHighlightId(null), 4000);
+    return () => clearTimeout(t);
+  }, [highlightId, loading]);
 
   useEffect(() => {
     if (!user?.level) return;
@@ -51,12 +52,23 @@ useEffect(() => {
     function handleNew(notification: any) {
       const relevant = notification.audience === 'all' || notification.audience === `level_${user!.level}`;
       if (!relevant) return;
-      setNotifications(prev => [{ ...notification, isRead: false }, ...prev]);
+      setNotifications(prev =>
+        prev.some(n => n.id === notification.id)
+          ? prev
+          : [{ ...notification, isRead: false }, ...prev]
+      );
+    }
+
+    // An executive deleted a notification: drop it from this page right away
+    function handleDelete({ id }: { id: string }) {
+      setNotifications(prev => prev.filter(n => n.id !== id));
     }
 
     socket.on('notification:new', handleNew);
+    socket.on('notification:delete', handleDelete);
     return () => {
       socket.off('notification:new', handleNew);
+      socket.off('notification:delete', handleDelete);
     };
   }, [user?.level]);
 
@@ -135,11 +147,11 @@ useEffect(() => {
             <div className="space-y-3">
               {notifications.map(n => (
                 <div key={n.id}
-  id={`notif-${n.id}`}
-  onClick={() => !n.isRead && handleMarkRead(n.id)}
-  className={`bg-white rounded-2xl border p-4 flex gap-3 shadow-[0_2px_4px_rgba(0,0,0,0.04)] transition
-    ${highlightId === n.id ? 'ring-2 ring-yellow-400' : ''}
-    ${n.isRead ? 'border-gray-100' : 'border-gray-300 cursor-pointer hover:border-gray-400'}`}>
+                  id={`notif-${n.id}`}
+                  onClick={() => !n.isRead && handleMarkRead(n.id)}
+                  className={`bg-white rounded-2xl border p-4 flex gap-3 shadow-[0_2px_4px_rgba(0,0,0,0.04)] transition
+                    ${highlightId === n.id ? 'ring-2 ring-yellow-400' : ''}
+                    ${n.isRead ? 'border-gray-100' : 'border-gray-300 cursor-pointer hover:border-gray-400'}`}>
                   {!n.isRead && (
                     <span className="w-2 h-2 rounded-full bg-gray-900 flex-shrink-0 mt-1.5" />
                   )}

@@ -14,9 +14,19 @@ function configure() {
 
 type Sub = { endpoint: string; p256dh: string; auth: string };
 
+type PushOptions = {
+  // How long (in seconds) the push service keeps the message if the device is offline.
+  // If omitted, web-push defaults to 4 weeks.
+  ttl?: number;
+};
+
 // Sends a payload to many subscriptions and returns the endpoints that are
 // dead (404/410), so the caller can delete them from the database.
-export async function sendPush(subs: Sub[], payload: object): Promise<string[]> {
+export async function sendPush(
+  subs: Sub[],
+  payload: object,
+  options: PushOptions = {}
+): Promise<string[]> {
   configure();
   const body = JSON.stringify(payload);
   const dead: string[] = [];
@@ -26,7 +36,8 @@ export async function sendPush(subs: Sub[], payload: object): Promise<string[]> 
       try {
         await webpush.sendNotification(
           { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
-          body
+          body,
+          options.ttl !== undefined ? { TTL: options.ttl } : undefined
         );
       } catch (err: any) {
         if (err?.statusCode === 404 || err?.statusCode === 410) dead.push(s.endpoint);

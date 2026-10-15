@@ -22,6 +22,7 @@ import examRoutes from './routes/exam.routes';
 import archiveRoutes from './routes/archive.routes';
 import pushRoutes from './routes/push.routes';
 import statsRoutes from './routes/stats.routes';
+import { deleteExpiredOneTime } from './controllers/notifications.controller';
 
 const app = express();
 app.set('trust proxy', 1);
@@ -120,4 +121,10 @@ app.use((err: any, _req: any, res: any, _next: any) => {
 });
 
 const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+server.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+
+  // Clear expired one-time notifications now and every 10 minutes
+  deleteExpiredOneTime().catch(console.error);
+  setInterval(() => deleteExpiredOneTime().catch(console.error), 10 * 60 * 1000);
+});

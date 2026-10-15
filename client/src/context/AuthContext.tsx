@@ -109,6 +109,7 @@ useEffect(() => {
 
   socket.on('connect', handleConnect);
   socket.connect();
+  if (socket.connected) handleConnect();
 
   return () => {
     socket.off('connect', handleConnect);

@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import api from '@/lib/api';
+import { socket } from '@/lib/socket'; // same path as on the student page
 
 const AUDIENCES = ['all', 'level_100', 'level_200', 'level_300', 'level_400'] as const;
 const CATEGORIES = ['general', 'academic', 'event', 'urgent'] as const;
@@ -44,6 +45,9 @@ export default function ExecutiveNotifications() {
   const [editExpiryActive, setEditExpiryActive] = useState(false);
   const [editPopupDays, setEditPopupDays] = useState(3);
 
+  // One-time notifications keep a fixed 12-hour life, so their popup settings are hidden in the edit modal
+  const editingOneTime = !!sent.find(n => n.id === editId)?.oneTime;
+
   async function loadSent() {
     try {
       const { data } = await api.get('/notifications/sent');
@@ -55,6 +59,17 @@ export default function ExecutiveNotifications() {
     if (authLoading) return;
     loadSent();
   }, [authLoading]);
+
+  // Another executive deleted a notification: drop it from this list right away
+  useEffect(() => {
+    function handleDeleted({ id }: { id: string }) {
+      setSent(prev => prev.filter(n => n.id !== id));
+    }
+    socket.on('notification:delete', handleDeleted);
+    return () => {
+      socket.off('notification:delete', handleDeleted);
+    };
+  }, []);
 
   async function handleDelete(id: string) {
     setDeleting(true);
@@ -245,41 +260,43 @@ export default function ExecutiveNotifications() {
               </select>
             </div>
 
-            <div className="rounded-xl border border-gray-200 p-3.5 space-y-3">
-              <label className="flex items-center gap-2.5 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={editIsPopup}
-                  onChange={(e) => setEditIsPopup(e.target.checked)}
-                  className="w-4 h-4 rounded border-gray-300 text-gray-900 focus:ring-gray-400"
-                />
-                <span className="text-sm font-semibold text-gray-700" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                  Show as popup when students log in
-                </span>
-              </label>
-
-              {editIsPopup && !editExpiryActive && (
-                <div>
-                  <label className="text-xs font-bold text-gray-500 mb-1 block" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                    Days to show popup
-                  </label>
+            {!editingOneTime && (
+              <div className="rounded-xl border border-gray-200 p-3.5 space-y-3">
+                <label className="flex items-center gap-2.5 cursor-pointer">
                   <input
-                    type="number"
-                    min={1}
-                    max={30}
-                    value={editPopupDays}
-                    onChange={(e) => setEditPopupDays(Number(e.target.value))}
-                    className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-base focus:outline-none focus:border-gray-400"
+                    type="checkbox"
+                    checked={editIsPopup}
+                    onChange={(e) => setEditIsPopup(e.target.checked)}
+                    className="w-4 h-4 rounded border-gray-300 text-gray-900 focus:ring-gray-400"
                   />
-                </div>
-              )}
+                  <span className="text-sm font-semibold text-gray-700" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                    Show as popup when students log in
+                  </span>
+                </label>
 
-              <p className="text-[11px] text-gray-400">
-                {editExpiryActive
-                  ? 'Turning the popup off and on again keeps the original expiry date.'
-                  : 'This popup has no active expiry, so enabling it starts a fresh countdown.'}
-              </p>
-            </div>
+                {editIsPopup && !editExpiryActive && (
+                  <div>
+                    <label className="text-xs font-bold text-gray-500 mb-1 block" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                      Days to show popup
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={30}
+                      value={editPopupDays}
+                      onChange={(e) => setEditPopupDays(Number(e.target.value))}
+                      className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-base focus:outline-none focus:border-gray-400"
+                    />
+                  </div>
+                )}
+
+                <p className="text-[11px] text-gray-400">
+                  {editExpiryActive
+                    ? 'Turning the popup off and on again keeps the original expiry date.'
+                    : 'This popup has no active expiry, so enabling it starts a fresh countdown.'}
+                </p>
+              </div>
+            )}
             {editError && <p className="text-xs font-semibold text-red-600">{editError}</p>}
 
             <div className="flex gap-2">
@@ -401,7 +418,7 @@ export default function ExecutiveNotifications() {
           <span className="text-sm text-gray-700" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
             One-time phone notification only
             <span className="block text-[11px] text-gray-400 font-normal">
-              Sent once to phones that have alerts on. It will not appear as a popup or on the Notifications page.
+              Sent as a phone alert. Students can tap it to open it on the Notifications page, where it stays for 12 hours and is then deleted automatically. It will not appear as a login popup.
             </span>
           </span>
         </label>
