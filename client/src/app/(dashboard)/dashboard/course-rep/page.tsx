@@ -1,5 +1,7 @@
 'use client';
 import Link from 'next/link';
+import { useState, useEffect } from 'react';
+import api from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import DashboardShell from '@/components/dashboard/DashboardShell';
 
@@ -39,14 +41,26 @@ const ACTIONS = [
   },
 ];
 
-const STATS = [
-  { label: 'Your Level', value: '—', sub: 'students enrolled' },
-  { label: 'Notifications Sent', value: '—', sub: 'this semester' },
-  { label: 'Questions Uploaded', value: '—', sub: 'past questions' },
-];
 
 export default function CourseRepDashboard() {
   const { user } = useAuth();
+    const [stats, setStats] = useState<{
+    students: number;
+    notificationsSent: number;
+    questionsUploaded: number;
+  } | null>(null);
+
+  useEffect(() => {
+    api.get('/stats/course-rep')
+      .then(({ data }) => setStats(data))
+      .catch(() => setStats(null));
+  }, []);
+
+  const STATS = [
+    { label: 'Your Level', value: stats ? String(stats.students) : '—', sub: 'students enrolled' },
+    { label: 'Notifications Sent', value: stats ? String(stats.notificationsSent) : '—', sub: 'in total' },
+    { label: 'Questions Uploaded', value: stats ? String(stats.questionsUploaded) : '—', sub: 'past questions' },
+  ];
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
