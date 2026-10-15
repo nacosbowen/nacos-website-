@@ -1,10 +1,10 @@
 import DashboardShell from '@/components/dashboard/DashboardShell';
-import StudentTimetable from '@/components/features/StudentTimetable';
+import TimetableManager from '@/components/features/TimetableManager';
 
 export default function Page() {
   return (
     <DashboardShell title="Class Timetable">
-      <StudentTimetable />
+      <TimetableManager />
     </DashboardShell>
   );
 }

@@ -2,18 +2,11 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import api from '@/lib/api'
+import WeeklyOverview from '@/components/features/WeeklyOverview';
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
-const MSG_TYPES: Record<string, { label: string; color: string; icon: string }> = {
-  class_cancelled: { label: 'Class Cancelled', color: 'bg-red-50 border-red-200 text-red-700', icon: '🚫' },
-  assignment:      { label: 'Assignment',       color: 'bg-blue-50 border-blue-200 text-blue-700', icon: '📝' },
-  test:            { label: 'Test / CAT',        color: 'bg-orange-50 border-orange-200 text-orange-700', icon: '📋' },
-  presentation:    { label: 'Presentation',     color: 'bg-purple-50 border-purple-200 text-purple-700', icon: '🎤' },
-  custom:          { label: 'Notice',           color: 'bg-gray-50 border-gray-200 text-gray-700', icon: '📢' },
-};
 
 type ClassEntry = { id: string; name: string; code: string; day: string; start: string; end: string; venue: string };
-type Message = { id: string; type: string; text: string; course: string; timestamp: number };
 
 export default function StudentTimetable() {
   const { user, isLoading: authLoading } = useAuth();
@@ -21,7 +14,6 @@ export default function StudentTimetable() {
   const departmentId = user?.department?.id;
 
   const [classes, setClasses] = useState<ClassEntry[]>([]);
-  const [messages, setMessages] = useState<Message[]>([]);
   const [ttLoading, setTtLoading] = useState(true);
   const [activeDay, setActiveDay] = useState(() => {
     const d = new Date().getDay();
@@ -58,12 +50,6 @@ export default function StudentTimetable() {
     return () => clearInterval(interval);
   }, [departmentId, level, authLoading]);
 
-  // Keep messages on localStorage for now — separate task
-  useEffect(() => {
-    const storedMsgs = localStorage.getItem(`nacos_messages_${level}L`);
-    if (storedMsgs) setMessages(JSON.parse(storedMsgs));
-  }, [level]);
-
   const todayClasses = classes
     .filter(c => c.day === activeDay)
     .sort((a, b) => a.start.localeCompare(b.start));
@@ -81,8 +67,6 @@ export default function StudentTimetable() {
     return nowMins >= startMins && nowMins < endMins;
   }
 
-  const recentMessages = messages.slice(0, 5);
-
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       {/* Header */}
@@ -94,36 +78,6 @@ export default function StudentTimetable() {
           {level}L · {user?.department?.name ?? 'Computer Science'}
         </p>
       </div>
-
-      {/* Course Rep Announcements */}
-      {recentMessages.length > 0 && (
-        <div className="space-y-3">
-          <p className="text-xs font-bold text-gray-400 tracking-widest uppercase"
-            style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-            From Your Course Rep
-          </p>
-          {recentMessages.map(m => {
-            const t = MSG_TYPES[m.type] ?? MSG_TYPES.custom;
-            return (
-              <div key={m.id} className={`rounded-2xl border px-4 py-3.5 flex items-start gap-3 ${t.color}`}>
-                <span className="text-lg flex-shrink-0 mt-0.5">{t.icon}</span>
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap mb-0.5">
-                    <span className="text-xs font-bold" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{t.label}</span>
-                    {m.course && (
-                      <span className="text-xs font-semibold opacity-60" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{m.course}</span>
-                    )}
-                  </div>
-                  <p className="text-sm">{m.text}</p>
-                  <p className="text-xs opacity-50 mt-1">
-                    {new Date(m.timestamp).toLocaleString('en-NG', { dateStyle: 'medium', timeStyle: 'short' })}
-                  </p>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
 
       {/* Day selector */}
       <div className="flex gap-1.5 flex-wrap">
@@ -207,38 +161,8 @@ export default function StudentTimetable() {
       )}
 
       {/* Full week summary */}
-      {classes.length > 0 && (
-        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden
-          shadow-[0_2px_4px_rgba(0,0,0,0.04)]">
-          <div className="px-5 py-3 border-b border-gray-100">
-            <p className="text-xs font-bold text-gray-400 tracking-widest uppercase"
-              style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Weekly Summary</p>
-          </div>
-          <div className="divide-y divide-gray-50">
-            {DAYS.map(d => {
-              const dc = classes.filter(c => c.day === d).sort((a, b) => a.start.localeCompare(b.start));
-              return (
-                <div key={d} className="px-5 py-3 flex items-start gap-4">
-                  <p className="text-xs font-bold text-gray-400 w-14 pt-0.5 flex-shrink-0"
-                    style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{d.slice(0, 3).toUpperCase()}</p>
-                  {dc.length === 0 ? (
-                    <p className="text-xs text-gray-300">Free day</p>
-                  ) : (
-                    <div className="flex flex-wrap gap-2">
-                      {dc.map(c => (
-                        <span key={c.id} className="text-xs bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full"
-                          style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                          {c.start} {c.code}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
+    {/* Weekly overview */}
+{classes.length > 0 && <WeeklyOverview classes={classes} />}
     </div>
   );
 }
