@@ -23,6 +23,7 @@ import archiveRoutes from './routes/archive.routes';
 import pushRoutes from './routes/push.routes';
 import statsRoutes from './routes/stats.routes';
 import { deleteExpiredOneTime } from './controllers/notifications.controller';
+import devApplicationsRoutes from './routes/dev-applications.routes';
 
 const app = express();
 app.set('trust proxy', 1);
@@ -78,6 +79,7 @@ app.use('/api/exams', examRoutes);
 app.use('/api/archive', archiveRoutes);
 app.use('/api/push', pushRoutes);
 app.use('/api/stats', statsRoutes);
+app.use('/api/dev-applications', devApplicationsRoutes);
 
 // Socket.io: join level rooms on connect
 io.on('connection', (socket) => {

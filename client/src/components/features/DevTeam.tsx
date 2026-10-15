@@ -1,30 +1,46 @@
 'use client';
 import { useState } from 'react';
+import api from '@/lib/api';
 
 const ROLES = ['Frontend Developer', 'Backend Developer', 'Full Stack Developer', 'Mobile Developer', 'UI/UX Designer', 'DevOps Engineer', 'Data Analyst', 'Other'];
 
 const TEAM = [
-  { name: 'Oluwaseun Adeyemi', role: 'Lead Developer', dept: 'CS', level: 400, skills: ['React', 'Node.js', 'TypeScript'] },
-  { name: 'Chidera Nwankwo', role: 'Backend Engineer', dept: 'SE', level: 300, skills: ['Python', 'Django', 'PostgreSQL'] },
-  { name: 'Amara Okoye', role: 'UI/UX Designer', dept: 'CS', level: 300, skills: ['Figma', 'React', 'Tailwind'] },
-  { name: 'Emeka Eze', role: 'Mobile Developer', dept: 'CS', level: 300, skills: ['Flutter', 'React Native', 'Firebase'] },
-  { name: 'Fatima Usman', role: 'DevOps Engineer', dept: 'CYB', level: 400, skills: ['AWS', 'Docker', 'CI/CD'] },
-  { name: 'Tunde Adebayo', role: 'Full Stack Dev', dept: 'IFT', level: 200, skills: ['Vue.js', 'Express', 'MongoDB'] },
+  { name: 'Jesutofunmi Agboola', role: 'Backend Developer', dept: 'SEN', level: 300 },
+  { name: 'Olumide Akinloye', role: 'Frontend Developer', dept: 'CSC', level: 400 },
+  { name: 'Timothy Adeogun', role: 'UI/UX Designer', dept: 'CSC', level: 400 },
+  { name: 'Oluwademiladeayo Adeniyi', role: 'AI Developer', dept: 'CSC', level: 300 },
+  { name: 'Franklin Ezewusi', role: 'AI Developer', dept: 'CSC', level: 200 },
+  { name: 'Toluwani Edgal', role: 'Backend Developer', dept: 'SEN', level: 300 },
+  { name: 'Ayomide Ogunmokun', role: 'Frontend Developer', dept: 'SEN', level: 300 },
 ];
 
 const PROJECTS = [
-  { name: 'NACOS Website & App', desc: 'The official NACOS Bowen web app you\'re using right now — built from scratch.', status: 'Live', tech: ['Next.js', 'TypeScript', 'Node.js'] },
-  { name: 'CGPA Tracker', desc: 'A mobile app to help students track their academic performance across semesters.', status: 'In Progress', tech: ['Flutter', 'Firebase'] },
-  { name: 'PQ Library', desc: 'A searchable archive of past questions across all NACOS departments.', status: 'In Progress', tech: ['React', 'Supabase'] },
+  {
+    name: 'UniPath',
+    desc: 'An AI-powered platform that helps Nigerian students find suitable universities, courses, and scholarship opportunities based on their UTME scores, O\'Level results, budget, and personal preferences.',
+    status: 'Live',
+    tech: ['Next.js', 'TypeScript', 'Tailwind CSS', 'Node.js', 'Supabase', 'Google Gemini AI', 'Paystack'],
+    url: 'https://unipath-guide.vercel.app',
+  },
+  {
+    name: 'NACOS AI',
+    desc: 'An AI-powered WhatsApp assistant for NACOS Bowen University that helps students instantly access verified information about executives, lecturers, academic roadmaps, announcements, SIWES, events, and departmental activities.',
+    status: 'In Progress',
+    tech: ['Node.js', 'TypeScript', 'Supabase', 'PostgreSQL', 'Google Gemini AI', 'WhatsApp Business API', 'RAG'],
+  },
 ];
 
 export default function DevTeam() {
   const [form, setForm] = useState({ name: '', email: '', dept: '', level: '', role: '', skills: '', portfolio: '', reason: '' });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+const [serverError, setServerError] = useState('');
 
-  function handleSubmit(e: React.FormEvent) {
+async function handleSubmit(e: React.FormEvent) {
   e.preventDefault();
+  if (submitting) return;
+
   const newErrors: Record<string, string> = {};
   if (!form.name.trim()) newErrors.name = 'Full name is required';
   if (!form.email.trim()) newErrors.email = 'Email is required';
@@ -34,6 +50,7 @@ export default function DevTeam() {
   if (!form.role) newErrors.role = 'Please select a role';
   if (!form.skills.trim()) newErrors.skills = 'Please list at least one skill';
   if (!form.portfolio.trim()) newErrors.portfolio = 'GitHub or portfolio link is required';
+  else if (!/^https?:\/\//i.test(form.portfolio.trim())) newErrors.portfolio = 'Link must start with http:// or https://';
   if (!form.reason.trim()) newErrors.reason = 'Please tell us why you want to join';
 
   if (Object.keys(newErrors).length > 0) {
@@ -41,13 +58,33 @@ export default function DevTeam() {
     return;
   }
   setErrors({});
+  setServerError('');
+  setSubmitting(true);
 
   try {
-    const existing = JSON.parse(localStorage.getItem('nacos_dev_applications') ?? '[]');
-    const app = { id: Date.now().toString(), name: form.name, email: form.email, dept: form.dept, level: form.level, role: form.role, skills: form.skills, portfolio: form.portfolio, motivation: form.reason, submittedAt: Date.now(), status: 'pending' };
-    localStorage.setItem('nacos_dev_applications', JSON.stringify([...existing, app]));
-  } catch { /* ignore */ }
-  setSubmitted(true);
+    await api.post('/dev-applications', {
+      name: form.name,
+      email: form.email,
+      dept: form.dept,
+      level: form.level,
+      role: form.role,
+      skills: form.skills,
+      portfolio: form.portfolio,
+      motivation: form.reason,
+    });
+    setSubmitted(true);
+  } catch (err: any) {
+    const data = err?.response?.data;
+    if (data?.errors) {
+      const mapped: Record<string, string> = { ...data.errors };
+      if (mapped.motivation) { mapped.reason = mapped.motivation; delete mapped.motivation; }
+      setErrors(mapped);
+    } else {
+      setServerError(data?.message ?? 'Something went wrong. Please try again.');
+    }
+  } finally {
+    setSubmitting(false);
+  }
 }
 
   return (
@@ -72,26 +109,35 @@ export default function DevTeam() {
       <div>
         <p className="text-xs font-bold text-gray-400 tracking-widest uppercase mb-4"
           style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Our Projects</p>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {PROJECTS.map(p => (
-            <div key={p.name} className="bg-white rounded-2xl border border-gray-100 p-4
-              shadow-[0_2px_4px_rgba(0,0,0,0.04)]">
-              <div className="flex items-start justify-between gap-2 mb-2">
-                <p className="text-sm font-black text-gray-900" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{p.name}</p>
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border flex-shrink-0
-                  ${p.status === 'Live' ? 'bg-green-50 text-green-600 border-green-200' : 'bg-orange-50 text-orange-500 border-orange-200'}`}
-                  style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                  {p.status}
-                </span>
-              </div>
-              <p className="text-xs text-gray-400 leading-relaxed mb-3">{p.desc}</p>
-              <div className="flex flex-wrap gap-1.5">
-                {p.tech.map(t => (
-                  <span key={t} className="text-[10px] font-bold bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">{t}</span>
-                ))}
-              </div>
-            </div>
-          ))}
+  <div key={p.name} className="bg-white rounded-2xl border border-gray-100 p-4
+    shadow-[0_2px_4px_rgba(0,0,0,0.04)]">
+    <div className="flex items-start justify-between gap-2 mb-2">
+      <p className="text-sm font-black text-gray-900" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{p.name}</p>
+      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border flex-shrink-0
+        ${p.status === 'Live' ? 'bg-green-50 text-green-600 border-green-200' : 'bg-orange-50 text-orange-500 border-orange-200'}`}
+        style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+        {p.status}
+      </span>
+    </div>
+    <p className="text-xs text-gray-400 leading-relaxed mb-3">{p.desc}</p>
+    <div className="flex flex-wrap gap-1.5">
+      {p.tech.map(t => (
+        <span key={t} className="text-[10px] font-bold bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">{t}</span>
+      ))}
+    </div>
+
+    {/* ↓ NEW: paste here, after the tech tags div and before the card's closing div */}
+    {p.url && (
+      <a href={p.url} target="_blank" rel="noopener noreferrer"
+        className="inline-block mt-3 text-xs font-bold text-gray-900 hover:underline"
+        style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+        Visit site →
+      </a>
+    )}
+  </div>
+))}
         </div>
       </div>
 
@@ -111,11 +157,7 @@ export default function DevTeam() {
                 <p className="text-xs font-black text-gray-900" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{m.name}</p>
                 <p className="text-[11px] text-gray-500 mt-0.5">{m.role}</p>
                 <p className="text-[10px] text-gray-400 mt-1">{m.dept} · {m.level}L</p>
-                <div className="flex flex-wrap gap-1 mt-2">
-                  {m.skills.slice(0, 2).map(s => (
-                    <span key={s} className="text-[9px] font-bold bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">{s}</span>
-                  ))}
-                </div>
+               
               </div>
             );
           })}
@@ -212,13 +254,14 @@ export default function DevTeam() {
         ${errors.reason ? 'border-red-300' : 'border-gray-200'}`} />
     {errors.reason && <p className="text-xs text-red-500 mt-1">{errors.reason}</p>}
   </div>
-  <button type="submit"
-    className="px-6 py-2.5 rounded-xl bg-gray-900 text-white text-sm font-bold hover:bg-gray-800 transition"
+  {serverError && <p className="text-xs text-red-500">{serverError}</p>}
+  <button type="submit" disabled={submitting}
+    className="px-6 py-2.5 rounded-xl bg-gray-900 text-white text-sm font-bold hover:bg-gray-800 transition disabled:opacity-50"
     style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-    Submit Application
+    {submitting ? 'Submitting...' : 'Submit Application'}
   </button>
 </form>
-        )}
+    )}
       </div>
     </div>
   );

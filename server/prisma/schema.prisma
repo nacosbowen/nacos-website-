@@ -36,6 +36,13 @@ enum SuggestionStatus {
   resolved
 }
 
+enum DevApplicationStatus {
+  pending
+  accepted
+  rejected
+}
+
+
 model StudentRegistry {
   id           Int     @id @default(autoincrement())
   fullName     String
@@ -80,6 +87,7 @@ model User {
   rsvps             EventRsvp[]
   emailVerification EmailVerificationCode?
   passwordResets    PasswordResetToken[]
+  devApplication    DevApplication?
 }
 
 model EmailVerificationCode {
@@ -332,4 +340,22 @@ model ArchiveImage {
   createdAt     DateTime @default(now())
 
   archiveItem ArchiveItem @relation(fields: [archiveItemId], references: [id], onDelete: Cascade)
+}
+
+model DevApplication {
+  id         String               @id @default(uuid())
+  userId     String               @unique
+  name       String
+  email      String
+  dept       String
+  level      String
+  role       String
+  skills     String
+  portfolio  String
+  motivation String
+  status     DevApplicationStatus @default(pending)
+  createdAt  DateTime             @default(now())
+  updatedAt  DateTime             @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
