@@ -418,7 +418,7 @@ export default function ExecutiveNotifications() {
           <span className="text-sm text-gray-700" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
             One-time phone notification only
             <span className="block text-[11px] text-gray-400 font-normal">
-              Sent as a phone alert. Students can tap it to open it on the Notifications page, where it stays for 12 hours and is then deleted automatically. It will not appear as a login popup.
+             Sent as a phone alert. Available on the Notifications page for 12 hours. No login popup.
             </span>
           </span>
         </label>
