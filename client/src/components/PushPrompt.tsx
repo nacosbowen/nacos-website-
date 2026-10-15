@@ -28,37 +28,41 @@ async function subscribeUser() {
   await api.post('/push/subscribe', sub.toJSON());
 }
 
+type Mode = 'hidden' | 'prompt' | 'ios' | 'blocked' | 'unsupported';
+
+const MESSAGES: Record<Exclude<Mode, 'hidden'>, string> = {
+  prompt: 'Turn on notifications to get NACOS announcements as a popup, even when the site is closed.',
+  ios: 'On iPhone: tap Share, then "Add to Home Screen", and open NACOS from there to turn on alerts.',
+  blocked:
+    'Notifications are blocked for this site. Tap the lock icon next to the address, open Site settings, set Notifications to Allow, then refresh this page.',
+  unsupported:
+    'This browser cannot show NACOS alerts. Open the site in Chrome to turn them on.',
+};
+
 export default function PushPrompt() {
-  const [mode, setMode] = useState<'hidden' | 'prompt' | 'ios'>('hidden');
+  const [mode, setMode] = useState<Mode>('hidden');
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    try {
-      if (localStorage.getItem('push-dismissed') === '1') return;
-    } catch {}
-
     const supported =
       'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
 
     if (!supported) {
       const isIos = /iPhone|iPad|iPod/i.test(navigator.userAgent);
       const standalone = (navigator as any).standalone === true;
-      if (isIos && !standalone) setMode('ios');
+      setMode(isIos && !standalone ? 'ios' : 'unsupported');
       return;
     }
 
     if (Notification.permission === 'granted') {
       // already allowed: quietly make sure this device is saved for this account
       subscribeUser().catch(() => {});
-    } else if (Notification.permission === 'default') {
+    } else if (Notification.permission === 'denied') {
+      setMode('blocked');
+    } else {
       setMode('prompt');
     }
   }, []);
-
-  function dismiss() {
-    try { localStorage.setItem('push-dismissed', '1'); } catch {}
-    setMode('hidden');
-  }
 
   async function enable() {
     setBusy(true);
@@ -67,9 +71,10 @@ export default function PushPrompt() {
       if (result === 'granted') {
         await subscribeUser();
         setMode('hidden');
-      } else {
-        dismiss();
+      } else if (result === 'denied') {
+        setMode('blocked');
       }
+      // if they closed the browser prompt without choosing, the banner stays
     } catch {
       // leave the banner so they can try again
     }
@@ -85,11 +90,7 @@ export default function PushPrompt() {
         <p className="text-sm font-bold text-gray-900" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
           Get NACOS alerts on your phone
         </p>
-        <p className="text-xs text-gray-400 mt-0.5">
-          {mode === 'ios'
-            ? 'On iPhone: tap Share, then "Add to Home Screen", and open the app from there.'
-            : 'Receive announcements as a popup, even when the site is closed.'}
-        </p>
+        <p className="text-xs text-gray-400 mt-0.5">{MESSAGES[mode]}</p>
       </div>
       {mode === 'prompt' && (
         <button onClick={enable} disabled={busy}
@@ -98,7 +99,6 @@ export default function PushPrompt() {
           {busy ? '...' : 'Enable'}
         </button>
       )}
-      <button onClick={dismiss} className="text-xs text-gray-400 hover:text-gray-600">Not now</button>
     </div>
   );
 }
