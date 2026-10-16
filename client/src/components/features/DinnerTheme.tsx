@@ -46,7 +46,7 @@ export default function DinnerTheme() {
     <div className="max-w-xl mx-auto space-y-6">
       {/* Hero */}
       <div className="relative rounded-3xl overflow-hidden bg-gray-900 p-8 text-center min-h-[380px] flex items-center justify-center">
-        {info.imageUrl && (
+               {info.imageUrl?.startsWith('http') && (
                 <>
       <img src={info.imageUrl} alt="Dinner" className="absolute inset-0 w-full h-full object-cover" />
      <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/75 to-black/90" />
