@@ -45,6 +45,17 @@ export default function PastQuestions() {
     return q.courseCode.toLowerCase().includes(s) || q.title.toLowerCase().includes(s);
   });
 
+  // Group by course, courses A→Z, newest year first inside each course
+  const groups = Object.entries(
+    filtered.reduce<Record<string, PQ[]>>((acc, q) => {
+      const code = q.courseCode.trim().toUpperCase();
+      (acc[code] ||= []).push(q);
+      return acc;
+    }, {})
+  )
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([code, items]) => [code, [...items].sort((a, b) => b.year - a.year)] as const);
+
   const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5001';
 
   if (loading) return (
@@ -82,8 +93,6 @@ export default function PastQuestions() {
         </select>
       </div>
 
-      {/* rest of the JSX (empty states, results list) stays exactly the same */}
-
       {questions.length === 0 ? (
         <div className="bg-white rounded-2xl border border-gray-100 p-14 text-center shadow-[0_2px_4px_rgba(0,0,0,0.04)]">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}
@@ -98,40 +107,49 @@ export default function PastQuestions() {
           <p className="text-sm text-gray-400">No results match your search</p>
         </div>
       ) : (
-        <div className="space-y-3">
-          {filtered.map(q => (
-            <div key={q.id} className="bg-white rounded-2xl border border-gray-100 p-4 flex items-center gap-4
-              shadow-[0_2px_4px_rgba(0,0,0,0.04)]">
-              <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                <svg viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 text-gray-400">
-                  <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
-                </svg>
+        <div className="space-y-7">
+          {groups.map(([code, items]) => (
+            <section key={code} className="space-y-3">
+              <div className="flex items-center gap-2.5 px-1">
+                <h3 className="text-sm font-black text-gray-900 tracking-wide"
+                  style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                  {code}
+                </h3>
+                <span className="text-[10px] font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+                  {items.length} {items.length === 1 ? 'paper' : 'papers'}
+                </span>
+                <div className="flex-1 h-px bg-gray-100" />
               </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap mb-0.5">
-                  <span className="text-xs font-black text-gray-900" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                    {q.courseCode}
-                  </span>
-                  <span className="text-[10px] font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
-                    {q.level}L
-                  </span>
-                  <span className="text-[10px] text-gray-400">{q.year}</span>
+
+              {items.map(q => (
+                <div key={q.id} className="bg-white rounded-2xl border border-gray-100 p-4 flex items-center gap-4
+                  shadow-[0_2px_4px_rgba(0,0,0,0.04)]">
+                  <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <svg viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 text-gray-400">
+                      <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <span className="text-[10px] font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+                      {q.year}
+                    </span>
+                    <p className="text-sm text-gray-700 mt-1">{q.title}</p>
+                  </div>
+                  <a
+                    href={q.fileUrl.startsWith('http') ? q.fileUrl : `${baseUrl}${q.fileUrl}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    download
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-gray-100 text-gray-600 hover:bg-gray-200 transition flex-shrink-0"
+                    style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                    <svg viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
+                      <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+                    </svg>
+                    Download
+                  </a>
                 </div>
-                <p className="text-sm text-gray-700">{q.title}</p>
-              </div>
-                          <a
-                href={q.fileUrl.startsWith('http') ? q.fileUrl : `${baseUrl}${q.fileUrl}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                download
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-gray-100 text-gray-600 hover:bg-gray-200 transition flex-shrink-0"
-                style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                <svg viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
-                  <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
-                </svg>
-                Download
-              </a>
-            </div>
+              ))}
+            </section>
           ))}
         </div>
       )}

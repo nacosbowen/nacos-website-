@@ -35,6 +35,7 @@ export default function CourseRepPastQuestions() {
   const [classesLoading, setClassesLoading] = useState(true);
   const [classIndex, setClassIndex] = useState(0);
   const [questions, setQuestions] = useState<PQ[]>([]);
+  const [questionsLoading, setQuestionsLoading] = useState(true);
   const [form, setForm] = useState({ ...EMPTY });
   const [file, setFile] = useState<File | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -55,7 +56,8 @@ export default function CourseRepPastQuestions() {
       .finally(() => setClassesLoading(false));
     api.get('/past-questions/mine')
       .then((r) => setQuestions(r.data))
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setQuestionsLoading(false));
   }, [authLoading]);
 
   function flash(msg: string) {
@@ -121,7 +123,8 @@ export default function CourseRepPastQuestions() {
               Upload past exam questions for your class · {questions.length} uploaded
             </p>
           </div>
-          {classes.length > 0 && (
+          {/* Shown immediately; hidden only once we know the rep has no class */}
+          {(classesLoading || classes.length > 0) && (
             <button
               onClick={() => setShowForm((s) => !s)}
               className="px-4 py-2.5 rounded-xl text-sm font-bold text-white bg-gray-900 hover:bg-gray-800 transition"
@@ -131,112 +134,118 @@ export default function CourseRepPastQuestions() {
           )}
         </div>
 
-        {classesLoading ? (
-          <div className="bg-white rounded-2xl border border-gray-100 h-24 animate-pulse" />
-        ) : classes.length === 0 ? (
+        {!classesLoading && classes.length === 0 && (
           <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center">
             <p className="text-sm text-gray-400">You are not assigned to a class yet</p>
           </div>
-        ) : (
-          showForm && (
-            <div className="bg-white rounded-2xl border border-gray-200 p-6 space-y-4 shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
-              <p className="text-sm font-black text-gray-900" style={grotesk}>Upload Past Question</p>
-
-              <div>
-                <label className={label}>Uploading for</label>
-                {classes.length === 1 ? (
-                  <div className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-700">
-                    {classLabel(classes[0])}
-                  </div>
-                ) : (
-                  <select
-                    value={classIndex}
-                    onChange={(e) => setClassIndex(Number(e.target.value))}
-                    className={field}>
-                    {classes.map((c, i) => (
-                      <option key={i} value={i}>{classLabel(c)}</option>
-                    ))}
-                  </select>
-                )}
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className={label}>Course Code *</label>
-                  <input
-                    value={form.courseCode}
-                    onChange={(e) => setForm((f) => ({ ...f, courseCode: e.target.value }))}
-                    placeholder="e.g. CYB 301"
-                    className={field}
-                  />
-                </div>
-                <div>
-                  <label className={label}>Title *</label>
-                  <input
-                    value={form.title}
-                    onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-                    placeholder="e.g. Network Security"
-                    className={field}
-                  />
-                </div>
-                <div>
-                  <label className={label}>Year</label>
-                  <select
-                    value={form.year}
-                    onChange={(e) => setForm((f) => ({ ...f, year: e.target.value }))}
-                    className={field}>
-                    {YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className={label}>PDF File *</label>
-                <input
-                  ref={fileRef}
-                  type="file"
-                  accept=".pdf"
-                  onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-                  className={`${field} file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-gray-200 file:text-gray-700 hover:file:bg-gray-300`}
-                />
-                {file && (
-                  <div className="flex items-center gap-2 mt-1">
-                    <p className="text-xs text-gray-400">
-                      {file.name} · {(file.size / 1024 / 1024).toFixed(1)} MB
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setFile(null);
-                        if (fileRef.current) fileRef.current.value = '';
-                      }}
-                      className="text-xs text-red-500 hover:text-red-600 font-semibold">
-                      Remove
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              <div className="flex gap-2 pt-1">
-                <button
-                  onClick={handleUpload}
-                  disabled={!form.courseCode.trim() || !form.title.trim() || !file || uploading}
-                  className="px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-gray-900 hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed transition"
-                  style={grotesk}>
-                  {uploading ? 'Uploading...' : 'Upload'}
-                </button>
-                <button
-                  onClick={() => { setShowForm(false); setForm({ ...EMPTY }); setFile(null); }}
-                  className="px-5 py-2.5 rounded-xl text-sm font-bold text-gray-500 hover:bg-gray-100 transition"
-                  style={grotesk}>
-                  Cancel
-                </button>
-              </div>
-            </div>
-          )
         )}
 
-        {questions.length === 0 ? (
+        {showForm && (classesLoading || classes.length > 0) && (
+          <div className="bg-white rounded-2xl border border-gray-200 p-6 space-y-4 shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
+            <p className="text-sm font-black text-gray-900" style={grotesk}>Upload Past Question</p>
+
+            <div>
+              <label className={label}>Uploading for</label>
+              {classesLoading ? (
+                <div className="h-[42px] rounded-xl border border-gray-200 bg-gray-50 animate-pulse" />
+              ) : classes.length === 1 ? (
+                <div className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-700">
+                  {classLabel(classes[0])}
+                </div>
+              ) : (
+                <select
+                  value={classIndex}
+                  onChange={(e) => setClassIndex(Number(e.target.value))}
+                  className={field}>
+                  {classes.map((c, i) => (
+                    <option key={i} value={i}>{classLabel(c)}</option>
+                  ))}
+                </select>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={label}>Course Code *</label>
+                <input
+                  value={form.courseCode}
+                  onChange={(e) => setForm((f) => ({ ...f, courseCode: e.target.value }))}
+                  placeholder="e.g. CYB 301"
+                  className={field}
+                />
+              </div>
+              <div>
+                <label className={label}>Title *</label>
+                <input
+                  value={form.title}
+                  onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+                  placeholder="e.g. Network Security"
+                  className={field}
+                />
+              </div>
+              <div>
+                <label className={label}>Year</label>
+                <select
+                  value={form.year}
+                  onChange={(e) => setForm((f) => ({ ...f, year: e.target.value }))}
+                  className={field}>
+                  {YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className={label}>PDF File *</label>
+              <input
+                ref={fileRef}
+                type="file"
+                accept=".pdf"
+                onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                className={`${field} file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-gray-200 file:text-gray-700 hover:file:bg-gray-300`}
+              />
+              {file && (
+                <div className="flex items-center gap-2 mt-1">
+                  <p className="text-xs text-gray-400">
+                    {file.name} · {(file.size / 1024 / 1024).toFixed(1)} MB
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFile(null);
+                      if (fileRef.current) fileRef.current.value = '';
+                    }}
+                    className="text-xs text-red-500 hover:text-red-600 font-semibold">
+                    Remove
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-2 pt-1">
+              <button
+                onClick={handleUpload}
+                disabled={classesLoading || !selected || !form.courseCode.trim() || !form.title.trim() || !file || uploading}
+                className="px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-gray-900 hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                style={grotesk}>
+                {uploading ? 'Uploading...' : 'Upload'}
+              </button>
+              <button
+                onClick={() => { setShowForm(false); setForm({ ...EMPTY }); setFile(null); }}
+                className="px-5 py-2.5 rounded-xl text-sm font-bold text-gray-500 hover:bg-gray-100 transition"
+                style={grotesk}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
+        {questionsLoading ? (
+          <div className="space-y-3 animate-pulse">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="bg-white rounded-2xl border border-gray-100 h-20" />
+            ))}
+          </div>
+        ) : questions.length === 0 ? (
           <div className="bg-white rounded-2xl border border-gray-100 p-14 text-center shadow-[0_2px_4px_rgba(0,0,0,0.04)]">
             <p className="text-sm font-semibold text-gray-400" style={grotesk}>No past questions uploaded yet</p>
             <p className="text-xs text-gray-300 mt-1">Upload past questions to help your class prepare for exams</p>

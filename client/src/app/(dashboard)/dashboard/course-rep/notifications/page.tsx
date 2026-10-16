@@ -41,6 +41,7 @@ export default function CourseRepNotifications() {
   const [success, setSuccess] = useState(false);
 
   const [sent, setSent] = useState<SentNotification[]>([]);
+  const [sentLoading, setSentLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
 
@@ -49,6 +50,9 @@ export default function CourseRepNotifications() {
       const { data } = await api.get('/notifications/course-rep/sent');
       setSent(data);
     } catch { /* keep the list as it was */ }
+    finally {
+      setSentLoading(false);
+    }
   }
 
   useEffect(() => {
@@ -81,6 +85,7 @@ export default function CourseRepNotifications() {
     setError('');
     setSuccess(false);
 
+    if (classesLoading) return;
     if (!selected) {
       setError('You are not assigned to a class yet');
       return;
@@ -160,9 +165,7 @@ export default function CourseRepNotifications() {
           <p className="text-sm text-gray-400 mt-0.5">Send an update to students in your class</p>
         </div>
 
-        {classesLoading ? (
-          <div className="bg-white rounded-2xl border border-gray-100 h-40 animate-pulse" />
-        ) : classes.length === 0 ? (
+        {!classesLoading && classes.length === 0 ? (
           <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center">
             <p className="text-sm text-gray-400">You are not assigned to a class yet</p>
           </div>
@@ -173,7 +176,9 @@ export default function CourseRepNotifications() {
           >
             <div>
               <label className={label} style={grotesk}>Sending to</label>
-              {classes.length === 1 ? (
+              {classesLoading ? (
+                <div className="h-[46px] rounded-xl border border-gray-200 bg-gray-50 animate-pulse" />
+              ) : classes.length === 1 ? (
                 <div className="rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-base text-gray-700">
                   {classLabel(classes[0])}
                 </div>
@@ -264,7 +269,7 @@ export default function CourseRepNotifications() {
 
             <button
               type="submit"
-              disabled={submitting}
+              disabled={submitting || classesLoading}
               className="w-full bg-gray-900 text-white rounded-xl py-2.5 text-sm font-bold hover:bg-gray-800 transition disabled:opacity-50"
               style={grotesk}
             >
@@ -278,7 +283,13 @@ export default function CourseRepNotifications() {
             Sent notifications · {sent.length}
           </p>
 
-          {sent.length === 0 ? (
+          {sentLoading ? (
+            <div className="space-y-3 animate-pulse">
+              {[1, 2].map((i) => (
+                <div key={i} className="bg-white rounded-2xl border border-gray-100 h-24" />
+              ))}
+            </div>
+          ) : sent.length === 0 ? (
             <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center">
               <p className="text-sm text-gray-400">Nothing sent yet</p>
             </div>
