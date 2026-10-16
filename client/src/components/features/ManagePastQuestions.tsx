@@ -5,6 +5,13 @@ import api from '@/lib/api';
 import DashboardShell from '@/components/dashboard/DashboardShell';
 
 const YEARS = Array.from({ length: 2026 - 2016 + 1 }, (_, i) => 2026 - i);
+const LEVELS = [100, 200, 300, 400];
+const DEPARTMENTS = [
+  { id: 1, code: 'CSC', name: 'Computer Science' },
+  { id: 2, code: 'SEN', name: 'Software Engineering' },
+  { id: 3, code: 'CYB', name: 'Cyber Security' },
+  { id: 4, code: 'IFT', name: 'Information Technology' },
+];
 const grotesk = { fontFamily: "'Space Grotesk', sans-serif" };
 const label = 'text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block';
 const field =
@@ -29,11 +36,20 @@ type PQ = {
 
 const EMPTY = { title: '', courseCode: '', year: String(YEARS[0]) };
 
-export default function CourseRepPastQuestions() {
-  const { isLoading: authLoading } = useAuth();
+export default function ManagePastQuestions() {
+  const { isLoading: authLoading, activeRole } = useAuth();
+  const isStaff = activeRole === 'executive' || activeRole === 'admin';
+
+  // Course rep: restricted to their assigned classes
   const [classes, setClasses] = useState<RepClass[]>([]);
   const [classesLoading, setClassesLoading] = useState(true);
   const [classIndex, setClassIndex] = useState(0);
+
+  // Executive / admin: any level, any departments
+  const [staffLevel, setStaffLevel] = useState(100);
+  const [allDepts, setAllDepts] = useState(false);
+  const [deptIds, setDeptIds] = useState<number[]>([]);
+
   const [questions, setQuestions] = useState<PQ[]>([]);
   const [questionsLoading, setQuestionsLoading] = useState(true);
   const [form, setForm] = useState({ ...EMPTY });
@@ -48,8 +64,27 @@ export default function CourseRepPastQuestions() {
   const selected = classes[classIndex];
   const classLabel = (c: RepClass) => `${c.level} Level · ${c.department.name}`;
 
+  const deptText = (ids: number[]) =>
+    ids.length === 0
+      ? 'All departments'
+      : ids.map((id) => DEPARTMENTS.find((d) => d.id === id)?.code ?? id).join(', ');
+
   useEffect(() => {
     if (authLoading) return;
+
+    setQuestionsLoading(true);
+
+    if (isStaff) {
+      // Executives and admins don't need a class list, and see every past question
+      setClassesLoading(false);
+      api.get('/past-questions')
+        .then((r) => setQuestions(r.data))
+        .catch(() => {})
+        .finally(() => setQuestionsLoading(false));
+      return;
+    }
+
+    setClassesLoading(true);
     api.get('/notifications/course-rep/classes')
       .then((r) => setClasses(r.data))
       .catch(() => setClasses([]))
@@ -58,15 +93,24 @@ export default function CourseRepPastQuestions() {
       .then((r) => setQuestions(r.data))
       .catch(() => {})
       .finally(() => setQuestionsLoading(false));
-  }, [authLoading]);
+  }, [authLoading, isStaff]);
 
   function flash(msg: string) {
     setToast(msg);
     setTimeout(() => setToast(''), 3000);
   }
 
+  function toggleDept(id: number) {
+    setDeptIds((prev) => (prev.includes(id) ? prev.filter((d) => d !== id) : [...prev, id]));
+  }
+
+  const staffTargetOk = allDepts || deptIds.length > 0;
+  const canUpload = isStaff
+    ? !!form.courseCode.trim() && !!form.title.trim() && !!file && staffTargetOk && !uploading
+    : !classesLoading && !!selected && !!form.courseCode.trim() && !!form.title.trim() && !!file && !uploading;
+
   async function handleUpload() {
-    if (!selected || !form.title.trim() || !form.courseCode.trim() || !file) return;
+    if (!canUpload || !file) return;
     setUploading(true);
     try {
       const fd = new FormData();
@@ -74,8 +118,15 @@ export default function CourseRepPastQuestions() {
       fd.append('title', form.title.trim());
       fd.append('courseCode', form.courseCode.toUpperCase().trim());
       fd.append('year', form.year);
-      fd.append('level', String(selected.level));
-      fd.append('departmentId', String(selected.departmentId));
+
+      if (isStaff) {
+        fd.append('level', String(staffLevel));
+        // empty value means "all departments"
+        fd.append('departmentIds', allDepts ? '' : deptIds.join(','));
+      } else {
+        fd.append('level', String(selected.level));
+        fd.append('departmentId', String(selected.departmentId));
+      }
 
       const { data } = await api.post('/past-questions', fd, {
         headers: { 'Content-Type': 'multipart/form-data' },
@@ -105,6 +156,9 @@ export default function CourseRepPastQuestions() {
     }
   }
 
+  // A course rep with no class gets a message instead of the upload form
+  const repHasNoClass = !authLoading && !isStaff && !classesLoading && classes.length === 0;
+
   return (
     <DashboardShell title="Past Questions">
       <div className="max-w-3xl mx-auto space-y-6">
@@ -120,11 +174,13 @@ export default function CourseRepPastQuestions() {
           <div>
             <h2 className="text-xl font-black text-gray-900" style={grotesk}>Past Questions</h2>
             <p className="text-sm text-gray-400 mt-0.5">
-              Upload past exam questions for your class · {questions.length} uploaded
+              {isStaff
+                ? `Upload past exam questions for any department and level · ${questions.length} total`
+                : `Upload past exam questions for your class · ${questions.length} uploaded`}
             </p>
           </div>
-          {/* Shown immediately; hidden only once we know the rep has no class */}
-          {(classesLoading || classes.length > 0) && (
+          {/* Shown immediately; hidden only for a course rep we know has no class */}
+          {!repHasNoClass && (
             <button
               onClick={() => setShowForm((s) => !s)}
               className="px-4 py-2.5 rounded-xl text-sm font-bold text-white bg-gray-900 hover:bg-gray-800 transition"
@@ -134,35 +190,86 @@ export default function CourseRepPastQuestions() {
           )}
         </div>
 
-        {!classesLoading && classes.length === 0 && (
+        {repHasNoClass && (
           <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center">
             <p className="text-sm text-gray-400">You are not assigned to a class yet</p>
           </div>
         )}
 
-        {showForm && (classesLoading || classes.length > 0) && (
+        {showForm && !repHasNoClass && (
           <div className="bg-white rounded-2xl border border-gray-200 p-6 space-y-4 shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
             <p className="text-sm font-black text-gray-900" style={grotesk}>Upload Past Question</p>
 
-            <div>
-              <label className={label}>Uploading for</label>
-              {classesLoading ? (
-                <div className="h-[42px] rounded-xl border border-gray-200 bg-gray-50 animate-pulse" />
-              ) : classes.length === 1 ? (
-                <div className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-700">
-                  {classLabel(classes[0])}
+            {isStaff ? (
+              <div className="space-y-3">
+                <div>
+                  <label className={label}>Level *</label>
+                  <select
+                    value={staffLevel}
+                    onChange={(e) => setStaffLevel(Number(e.target.value))}
+                    className={field}>
+                    {LEVELS.map((l) => (
+                      <option key={l} value={l}>{l} Level</option>
+                    ))}
+                  </select>
                 </div>
-              ) : (
-                <select
-                  value={classIndex}
-                  onChange={(e) => setClassIndex(Number(e.target.value))}
-                  className={field}>
-                  {classes.map((c, i) => (
-                    <option key={i} value={i}>{classLabel(c)}</option>
-                  ))}
-                </select>
-              )}
-            </div>
+
+                <div>
+                  <label className={label}>Departments *</label>
+                  <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 space-y-2">
+                    <label className="flex items-center gap-2.5 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={allDepts}
+                        onChange={(e) => setAllDepts(e.target.checked)}
+                        className="w-4 h-4 rounded border-gray-300 text-gray-900 focus:ring-gray-400"
+                      />
+                      <span className="text-sm font-semibold text-gray-700" style={grotesk}>
+                        All departments
+                      </span>
+                    </label>
+                    {!allDepts && (
+                      <div className="grid grid-cols-2 gap-2 pt-1">
+                        {DEPARTMENTS.map((d) => (
+                          <label key={d.id} className="flex items-center gap-2.5 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={deptIds.includes(d.id)}
+                              onChange={() => toggleDept(d.id)}
+                              className="w-4 h-4 rounded border-gray-300 text-gray-900 focus:ring-gray-400"
+                            />
+                            <span className="text-sm text-gray-700">{d.name}</span>
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  {!staffTargetOk && (
+                    <p className="text-[11px] text-gray-400 mt-1">Pick at least one department, or choose all.</p>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div>
+                <label className={label}>Uploading for</label>
+                {classesLoading ? (
+                  <div className="h-[42px] rounded-xl border border-gray-200 bg-gray-50 animate-pulse" />
+                ) : classes.length === 1 ? (
+                  <div className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-700">
+                    {classLabel(classes[0])}
+                  </div>
+                ) : (
+                  <select
+                    value={classIndex}
+                    onChange={(e) => setClassIndex(Number(e.target.value))}
+                    className={field}>
+                    {classes.map((c, i) => (
+                      <option key={i} value={i}>{classLabel(c)}</option>
+                    ))}
+                  </select>
+                )}
+              </div>
+            )}
 
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -224,7 +331,7 @@ export default function CourseRepPastQuestions() {
             <div className="flex gap-2 pt-1">
               <button
                 onClick={handleUpload}
-                disabled={classesLoading || !selected || !form.courseCode.trim() || !form.title.trim() || !file || uploading}
+                disabled={!canUpload}
                 className="px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-gray-900 hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed transition"
                 style={grotesk}>
                 {uploading ? 'Uploading...' : 'Upload'}
@@ -248,7 +355,7 @@ export default function CourseRepPastQuestions() {
         ) : questions.length === 0 ? (
           <div className="bg-white rounded-2xl border border-gray-100 p-14 text-center shadow-[0_2px_4px_rgba(0,0,0,0.04)]">
             <p className="text-sm font-semibold text-gray-400" style={grotesk}>No past questions uploaded yet</p>
-            <p className="text-xs text-gray-300 mt-1">Upload past questions to help your class prepare for exams</p>
+            <p className="text-xs text-gray-300 mt-1">Upload past questions to help students prepare for exams</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -264,7 +371,9 @@ export default function CourseRepPastQuestions() {
                     <div className="flex items-center gap-2 flex-wrap mb-0.5">
                       <span className="text-xs font-black text-gray-900" style={grotesk}>{q.courseCode}</span>
                       <span className="text-[10px] font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
-                        {cls ? classLabel(cls) : `${q.level}L`}
+                        {isStaff
+                          ? `${q.level}L · ${deptText(q.departmentIds)}`
+                          : cls ? classLabel(cls) : `${q.level}L`}
                       </span>
                       <span className="text-[10px] text-gray-400">{q.year}</span>
                     </div>

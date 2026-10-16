@@ -13,7 +13,7 @@ const router = Router();
 
 router.use(requireAuth);
 
-router.get('/mine', requireRole('course_rep'), getMyPastQuestions);
+router.get('/mine', requireRole('course_rep', 'executive', 'admin'), getMyPastQuestions);
 router.get('/', getPastQuestions);
 router.post('/', requireRole('course_rep', 'executive', 'admin'), uploadPdf.single('file'), uploadPastQuestion);
 router.delete('/:id', deletePastQuestion);
