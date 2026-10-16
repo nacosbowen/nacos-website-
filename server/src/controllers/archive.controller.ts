@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { asyncHandler } from '../utils/asyncHandler';
 import { uploadImageBuffer } from '../lib/cloudinary';
+import { logActivity } from '../lib/activity';
 
 // GET /api/archive
 export const getArchiveItems = asyncHandler(async (_req: Request, res: Response) => {
@@ -26,11 +27,13 @@ export const createArchiveItem = asyncHandler(async (req: Request, res: Response
     include: { images: true },
   });
 
+  await logActivity(userId, 'created', 'archive', item.title);
   return res.status(201).json(item);
 });
 
 // DELETE /api/archive/:id  (executive/admin)
 export const deleteArchiveItem = asyncHandler(async (req: Request, res: Response) => {
+  const userId = (req as any).userId;
   const item = await prisma.archiveItem.findUnique({
     where: { id: req.params.id },
     include: { images: true },
@@ -38,11 +41,13 @@ export const deleteArchiveItem = asyncHandler(async (req: Request, res: Response
   if (!item) return res.status(404).json({ message: 'Not found' });
 
   await prisma.archiveItem.delete({ where: { id: req.params.id } }); // images cascade-delete
+  await logActivity(userId, 'deleted', 'archive', item.title);
   return res.json({ message: 'Deleted' });
 });
 
 // POST /api/archive/:id/images  (executive/admin) — supports multiple files
 export const addArchiveImages = asyncHandler(async (req: Request, res: Response) => {
+  const userId = (req as any).userId;
   const files = (req as any).files as Express.Multer.File[] | undefined;
   if (!files || files.length === 0) {
     return res.status(400).json({ message: 'At least one image file is required' });
@@ -64,14 +69,24 @@ export const addArchiveImages = asyncHandler(async (req: Request, res: Response)
     )
   );
 
+  await logActivity(
+    userId,
+    'updated',
+    'archive',
+    `${item.title}: added ${created.length} ${created.length === 1 ? 'image' : 'images'}`
+  );
   return res.status(201).json(created);
 });
 
 // DELETE /api/archive/:itemId/images/:imageId  (executive/admin)
 export const deleteArchiveImage = asyncHandler(async (req: Request, res: Response) => {
+  const userId = (req as any).userId;
   const image = await prisma.archiveImage.findUnique({ where: { id: req.params.imageId } });
   if (!image) return res.status(404).json({ message: 'Image not found' });
 
+  const item = await prisma.archiveItem.findUnique({ where: { id: image.archiveItemId } });
+
   await prisma.archiveImage.delete({ where: { id: req.params.imageId } });
+  await logActivity(userId, 'updated', 'archive', `${item?.title ?? 'Archive item'}: removed an image`);
   return res.json({ message: 'Image deleted' });
 });

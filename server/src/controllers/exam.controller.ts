@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { asyncHandler } from '../utils/asyncHandler';
+import { logActivity } from '../lib/activity';
 
 // GET /api/exams?departmentId=&level=
 export const getExams = asyncHandler(async (req: Request, res: Response) => {
@@ -23,6 +24,7 @@ export const getExams = asyncHandler(async (req: Request, res: Response) => {
 
 // POST /api/exams  (admin / executive)
 export const createExam = asyncHandler(async (req: Request, res: Response) => {
+  const userId = (req as any).userId;
   const { departmentId, level, courseCode, courseTitle, date, time, duration, venue } = req.body;
 
   if (!departmentId || !level || !courseCode || !courseTitle || !date || !time || !duration) {
@@ -42,11 +44,14 @@ export const createExam = asyncHandler(async (req: Request, res: Response) => {
     },
   });
 
+  await logActivity(userId, 'created', 'exam', `${exam.courseCode} (${exam.level}L)`);
   return res.status(201).json(exam);
 });
 
 // DELETE /api/exams/:id  (admin / executive)
 export const deleteExam = asyncHandler(async (req: Request, res: Response) => {
-  await prisma.examEntry.delete({ where: { id: req.params.id } });
+  const userId = (req as any).userId;
+  const exam = await prisma.examEntry.delete({ where: { id: req.params.id } });
+  await logActivity(userId, 'deleted', 'exam', `${exam.courseCode} (${exam.level}L)`);
   return res.json({ message: 'Exam deleted' });
 });

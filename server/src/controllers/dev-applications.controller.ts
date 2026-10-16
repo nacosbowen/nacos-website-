@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { Prisma, DevApplicationStatus } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { asyncHandler } from '../utils/asyncHandler';
+import { logActivity } from '../lib/activity';
 
 const ROLES = ['Frontend Developer', 'Backend Developer', 'Full Stack Developer', 'Mobile Developer', 'UI/UX Designer', 'DevOps Engineer', 'Data Analyst', 'Other'];
 const LEVELS = ['100L', '200L', '300L', '400L', '500L'];
@@ -54,7 +55,7 @@ export const createDevApplication = asyncHandler(async (req: Request, res: Respo
     return res.status(400).json({ message: 'Please fix the highlighted fields', errors });
   }
 
-    const existing = await prisma.devApplication.findUnique({ where: { userId } });
+  const existing = await prisma.devApplication.findUnique({ where: { userId } });
 
   if (existing && existing.status !== 'rejected') {
     return res.status(409).json({
@@ -101,6 +102,7 @@ export const getDevApplications = asyncHandler(async (_req: Request, res: Respon
 
 // PATCH /api/dev-applications/:id/status  (exec/admin)
 export const updateDevApplicationStatus = asyncHandler(async (req: Request, res: Response) => {
+  const userId = (req as any).userId;
   const { status } = req.body ?? {};
   if (!Object.values(DevApplicationStatus).includes(status)) {
     return res.status(400).json({ message: 'Invalid status' });
@@ -113,14 +115,21 @@ export const updateDevApplicationStatus = asyncHandler(async (req: Request, res:
     where: { id: req.params.id },
     data: { status },
   });
+
+  const verb = status === 'accepted' ? 'accepted' : status === 'rejected' ? 'rejected' : 'reopened';
+  await logActivity(userId, verb, 'dev application', `${existing.name} (${existing.role})`);
+
   return res.json(updated);
 });
 
 // DELETE /api/dev-applications/:id  (exec/admin)
 export const deleteDevApplication = asyncHandler(async (req: Request, res: Response) => {
+  const userId = (req as any).userId;
   const existing = await prisma.devApplication.findUnique({ where: { id: req.params.id } });
   if (!existing) return res.status(404).json({ message: 'Application not found' });
 
   await prisma.devApplication.delete({ where: { id: req.params.id } });
+  await logActivity(userId, 'deleted', 'dev application', `${existing.name} (${existing.role})`);
+
   return res.json({ message: 'Application deleted' });
 });

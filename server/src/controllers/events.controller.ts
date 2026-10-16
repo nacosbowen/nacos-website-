@@ -3,6 +3,7 @@ import { prisma } from '../lib/prisma';
 import { io } from '../index';
 import { asyncHandler } from '../utils/asyncHandler';
 import { uploadImageBuffer } from '../lib/cloudinary';
+import { logActivity } from '../lib/activity';
 
 // GET /api/events
 export const getEvents = asyncHandler(async (req: Request, res: Response) => {
@@ -43,6 +44,7 @@ export const createEvent = asyncHandler(async (req: Request, res: Response) => {
       category: category || 'Other',
     },
   });
+    await logActivity(userId, 'created', 'event', event.title);
 
   io.to('level:all').emit('event:new', event);
   return res.status(201).json(event);
@@ -51,6 +53,7 @@ export const createEvent = asyncHandler(async (req: Request, res: Response) => {
 // PATCH /api/events/:id
 export const updateEvent = asyncHandler(async (req: Request, res: Response) => {
   const { title, description, date, location, price, spots, category } = req.body;
+  const userId = (req as any).userId;
 
   const event = await prisma.event.update({
     where: { id: req.params.id },
@@ -64,12 +67,16 @@ export const updateEvent = asyncHandler(async (req: Request, res: Response) => {
       ...(category !== undefined && { category }),
     },
   });
+
+  await logActivity(userId, 'updated', 'event', event.title);
   return res.json(event);
 });
 
 // DELETE /api/events/:id
 export const deleteEvent = asyncHandler(async (req: Request, res: Response) => {
-  await prisma.event.delete({ where: { id: req.params.id } });
+  const userId = (req as any).userId;
+  const event = await prisma.event.delete({ where: { id: req.params.id } });
+  await logActivity(userId, 'deleted', 'event', event.title);
   return res.json({ message: 'Event deleted' });
 });
 
@@ -131,6 +138,7 @@ export const getEventRsvps = asyncHandler(async (req: Request, res: Response) =>
 
 // POST /api/events/:id/image  (executive/admin)
 export const uploadEventImage = asyncHandler(async (req: Request, res: Response) => {
+  const userId = (req as any).userId;
   const file = (req as any).file as Express.Multer.File | undefined;
   if (!file) return res.status(400).json({ message: 'Image file is required' });
 
@@ -141,5 +149,6 @@ export const uploadEventImage = asyncHandler(async (req: Request, res: Response)
     data: { imageUrl },
   });
 
+  await logActivity(userId, 'updated', 'event', `${event.title} (image)`);
   return res.json(event);
 });

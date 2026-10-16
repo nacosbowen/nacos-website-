@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { asyncHandler } from '../utils/asyncHandler';
 import { uploadImageBuffer } from '../lib/cloudinary';
+import { logActivity } from '../lib/activity';
 
 // Ensures a DinnerInfo row always exists, returns it
 async function getOrCreateDinnerInfo() {
@@ -41,6 +42,18 @@ export const updateDinnerInfo = asyncHandler(async (req: Request, res: Response)
     },
   });
 
+  // Work out what the log entry should say
+  const changed = Object.entries({ title, date, time, venue, theme, dressCode, ticketPrice, highlights })
+    .filter(([, value]) => value !== undefined)
+    .map(([key]) => key);
+
+  if (imageUrl === null) {
+    await logActivity(userId, 'removed', 'dinner', 'Removed the dinner image');
+  }
+  if (changed.length > 0) {
+    await logActivity(userId, 'updated', 'dinner', `Changed: ${changed.join(', ')}`);
+  }
+
   return res.json(updated);
 });
 
@@ -51,7 +64,7 @@ export const uploadDinnerImage = asyncHandler(async (req: Request, res: Response
 
   if (!file) return res.status(400).json({ message: 'Image file is required' });
 
- const imageUrl = await uploadImageBuffer(file.buffer, 'nacos/dinner');
+  const imageUrl = await uploadImageBuffer(file.buffer, 'nacos/dinner');
   const info = await getOrCreateDinnerInfo();
 
   const updated = await prisma.dinnerInfo.update({
@@ -59,5 +72,6 @@ export const uploadDinnerImage = asyncHandler(async (req: Request, res: Response
     data: { imageUrl, updatedById: userId },
   });
 
+  await logActivity(userId, 'updated', 'dinner', 'Uploaded a new dinner image');
   return res.json(updated);
 });

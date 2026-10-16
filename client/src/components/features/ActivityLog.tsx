@@ -18,7 +18,7 @@ const ROLE_STYLES: Record<string, string> = {
   course_rep: 'bg-green-100 text-green-700',
 };
 
-const ENTITY_TYPES = ['timetable', 'notification', 'past question', 'suggestion'];
+const ENTITY_TYPES = ['timetable', 'notification', 'past question', 'suggestion', 'event', 'exam', 'dinner', 'poll', 'archive', 'dev application', 'registry', 'role'];
 
 export default function ActivityLog() {
   const [items, setItems] = useState<LogRow[]>([]);

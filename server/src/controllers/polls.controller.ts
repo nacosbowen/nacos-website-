@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { asyncHandler } from '../utils/asyncHandler';
+import { logActivity } from '../lib/activity';
 
 // GET /api/polls
 export const getPolls = asyncHandler(async (req: Request, res: Response) => {
@@ -61,6 +62,7 @@ export const createPoll = asyncHandler(async (req: Request, res: Response) => {
     include: { options: true },
   });
 
+  await logActivity(userId, 'created', 'poll', poll.title);
   return res.status(201).json(poll);
 });
 
@@ -100,6 +102,7 @@ export const castVote = asyncHandler(async (req: Request, res: Response) => {
 
 // PATCH /api/polls/:id  (exec/admin — close/reopen)
 export const updatePoll = asyncHandler(async (req: Request, res: Response) => {
+  const userId = (req as any).userId;
   const { isActive, title, description, endsAt } = req.body;
 
   const poll = await prisma.poll.update({
@@ -111,11 +114,21 @@ export const updatePoll = asyncHandler(async (req: Request, res: Response) => {
       ...(endsAt !== undefined && { endsAt: endsAt ? new Date(endsAt) : null }),
     },
   });
+
+  if (isActive !== undefined) {
+    await logActivity(userId, isActive ? 'reopened' : 'closed', 'poll', poll.title);
+  }
+  if (title || description !== undefined || endsAt !== undefined) {
+    await logActivity(userId, 'updated', 'poll', poll.title);
+  }
+
   return res.json(poll);
 });
 
 // DELETE /api/polls/:id  (admin)
 export const deletePoll = asyncHandler(async (req: Request, res: Response) => {
-  await prisma.poll.delete({ where: { id: req.params.id } });
+  const userId = (req as any).userId;
+  const poll = await prisma.poll.delete({ where: { id: req.params.id } });
+  await logActivity(userId, 'deleted', 'poll', poll.title);
   return res.json({ message: 'Poll deleted' });
 });

@@ -61,6 +61,9 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [pendingUserId, setPendingUserId] = useState<string | null>(null);
+  const [repTarget, setRepTarget] = useState<UserRow | null>(null);
+  const [repDept, setRepDept] = useState<number | ''>('');
+  const [repLevel, setRepLevel] = useState<number | ''>('');
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -80,10 +83,15 @@ useEffect(() => {
   fetchUsers();
 }, [isLoading]);
 
-  const handleRoleChange = async (userId: string, role: string, action: 'add' | 'remove') => {
+  const handleRoleChange = async (
+    userId: string,
+    role: string,
+    action: 'add' | 'remove',
+    extra?: { departmentId: number; level: number },
+  ) => {
     setPendingUserId(userId);
     try {
-      await api.patch(`/users/${userId}/roles`, { role, action });
+      await api.patch(`/users/${userId}/roles`, { role, action, ...extra });
       await fetchUsers();
     } catch (err: any) {
       setError(err?.response?.data?.message || 'Failed to update role');
@@ -288,6 +296,55 @@ const handleDeleteExam = async (id: string) => {
         </div>
       </header>
 
+      {repTarget && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
+          onClick={() => setRepTarget(null)}>
+          <div
+            className="bg-white rounded-xl p-6 w-full max-w-sm shadow-xl space-y-4"
+            onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-base font-semibold text-gray-900">
+              Make {repTarget.fullName} a course rep
+            </h3>
+            <p className="text-sm text-gray-500">Choose the class this rep will manage.</p>
+            <select
+              value={repDept}
+              onChange={(e) => setRepDept(Number(e.target.value) || '')}
+              className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white">
+              <option value="">Select department</option>
+              {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+            </select>
+            <select
+              value={repLevel}
+              onChange={(e) => setRepLevel(Number(e.target.value) || '')}
+              className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white">
+              <option value="">Select level</option>
+              {LEVELS.map((l) => <option key={l} value={l}>{l} Level</option>)}
+            </select>
+            <div className="flex gap-2 pt-1">
+              <button
+                onClick={() => setRepTarget(null)}
+                className="flex-1 text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 py-2 rounded-lg">
+                Cancel
+              </button>
+              <button
+                disabled={!repDept || !repLevel || pendingUserId === repTarget.id}
+                onClick={async () => {
+                  if (!repTarget || !repDept || !repLevel) return;
+                  await handleRoleChange(repTarget.id, 'course_rep', 'add', {
+                    departmentId: Number(repDept),
+                    level: Number(repLevel),
+                  });
+                  setRepTarget(null);
+                }}
+                className="flex-1 text-sm font-semibold text-white bg-gray-900 hover:bg-gray-800 py-2 rounded-lg disabled:opacity-50">
+                Assign
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-8">
         <section>
           <div className="flex items-center justify-between mb-4">
@@ -352,9 +409,15 @@ const handleDeleteExam = async (id: string) => {
                             disabled={pendingUserId === u.id}
                             defaultValue=""
                             onChange={(e) => {
-                              if (e.target.value) {
-                                handleRoleChange(u.id, e.target.value, 'add');
-                                e.target.value = '';
+                              const value = e.target.value;
+                              if (!value) return;
+                              e.target.value = '';
+                              if (value === 'course_rep') {
+                                setRepTarget(u);
+                                setRepDept(u.department?.id ?? '');
+                                setRepLevel(LEVELS.includes(u.level) ? u.level : '');
+                              } else {
+                                handleRoleChange(u.id, value, 'add');
                               }
                             }}
                             className="text-xs border border-gray-200 rounded-lg px-2 py-1 bg-gray-50"

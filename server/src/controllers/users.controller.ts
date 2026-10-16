@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { asyncHandler } from '../utils/asyncHandler';
+import { logActivity } from '../lib/activity';
 
 // GET /api/users  (admin)
 export const listUsers = asyncHandler(async (req: Request, res: Response) => {
@@ -83,8 +84,11 @@ export const getUser = asyncHandler(async (req: Request, res: Response) => {
 });
 
 // PATCH /api/users/:id/roles  (admin)
+// For course_rep + add, departmentId and level are required: they become the
+// rep's class assignment. Removing course_rep also removes their assignments.
 export const assignRole = asyncHandler(async (req: Request, res: Response) => {
-  const { role, action } = req.body; // action: 'add' | 'remove'
+  const actorId = (req as any).userId;
+  const { role, action, departmentId, level } = req.body; // action: 'add' | 'remove'
 
   if (!role || !['add', 'remove'].includes(action)) {
     return res.status(400).json({ message: 'role and action (add|remove) are required' });
@@ -92,6 +96,21 @@ export const assignRole = asyncHandler(async (req: Request, res: Response) => {
 
   const user = await prisma.user.findUnique({ where: { id: req.params.id } });
   if (!user) return res.status(404).json({ message: 'User not found' });
+
+  let classLabel = '';
+  let deptId = 0;
+  let lvl = 0;
+
+  if (role === 'course_rep' && action === 'add') {
+    deptId = Number(departmentId);
+    lvl = Number(level);
+    if (!deptId || ![100, 200, 300, 400].includes(lvl)) {
+      return res.status(400).json({ message: 'A course rep needs a department and a level (100 to 400)' });
+    }
+    const dept = await prisma.department.findUnique({ where: { id: deptId } });
+    if (!dept) return res.status(400).json({ message: 'Department not found' });
+    classLabel = `, ${dept.code} ${lvl}L`;
+  }
 
   const roleRecord = await prisma.role.upsert({
     where: { name: role },
@@ -105,11 +124,33 @@ export const assignRole = asyncHandler(async (req: Request, res: Response) => {
       create: { userId: user.id, roleId: roleRecord.id },
       update: {},
     });
+
+    if (role === 'course_rep') {
+      const already = await prisma.courseRepAssignment.findFirst({
+        where: { userId: user.id, departmentId: deptId, level: lvl },
+      });
+      if (!already) {
+        await prisma.courseRepAssignment.create({
+          data: { userId: user.id, departmentId: deptId, level: lvl },
+        });
+      }
+    }
   } else {
     await prisma.userRole.deleteMany({
       where: { userId: user.id, roleId: roleRecord.id },
     });
+
+    if (role === 'course_rep') {
+      await prisma.courseRepAssignment.deleteMany({ where: { userId: user.id } });
+    }
   }
+
+  await logActivity(
+    actorId,
+    action === 'add' ? 'added' : 'removed',
+    'role',
+    `${user.fullName} (${role}${classLabel})`
+  );
 
   return res.json({ message: `Role ${action === 'add' ? 'assigned' : 'removed'}` });
 });

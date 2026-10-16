@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { asyncHandler } from '../utils/asyncHandler';
+import { logActivity } from '../lib/activity';
 
 // GET /api/admin/registry
 export const getRegistry = asyncHandler(async (req: Request, res: Response) => {
@@ -24,6 +25,7 @@ export const getRegistry = asyncHandler(async (req: Request, res: Response) => {
 
 // POST /api/admin/registry  — add a single student to the registry
 export const addToRegistry = asyncHandler(async (req: Request, res: Response) => {
+  const userId = (req as any).userId;
   const { fullName, matricNumber, level } = req.body;
 
   if (!fullName || !matricNumber || !level) {
@@ -43,11 +45,13 @@ export const addToRegistry = asyncHandler(async (req: Request, res: Response) =>
     },
   });
 
+  await logActivity(userId, 'added', 'registry', `${entry.fullName} (${entry.matricNumber})`);
   return res.status(201).json(entry);
 });
 
 // POST /api/admin/registry/bulk  — import many students at once
 export const bulkAddToRegistry = asyncHandler(async (req: Request, res: Response) => {
+  const userId = (req as any).userId;
   const { students } = req.body as {
     students: { fullName: string; matricNumber: string; level: number }[];
   };
@@ -83,12 +87,20 @@ export const bulkAddToRegistry = asyncHandler(async (req: Request, res: Response
     }
   }
 
+  await logActivity(
+    userId,
+    'imported',
+    'registry',
+    `${data.length} students (${created} added, ${updated} updated)`
+  );
   return res.json({ message: `${created} added, ${updated} updated`, total: data.length });
 });
 
 // DELETE /api/admin/registry/:id
 export const removeFromRegistry = asyncHandler(async (req: Request, res: Response) => {
-  await prisma.studentRegistry.delete({ where: { id: Number(req.params.id) } });
+  const userId = (req as any).userId;
+  const entry = await prisma.studentRegistry.delete({ where: { id: Number(req.params.id) } });
+  await logActivity(userId, 'removed', 'registry', `${entry.fullName} (${entry.matricNumber})`);
   return res.json({ message: 'Removed from registry' });
 });
 
