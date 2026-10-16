@@ -4,6 +4,7 @@ import { io } from '../index';
 import { NotificationAudience, NotificationCategory } from '@prisma/client';
 import { asyncHandler } from '../utils/asyncHandler';
 import { sendPush } from '../lib/push';
+import { logActivity } from '../lib/activity';
 
 const ONE_TIME_LIFETIME_MS = 12 * 60 * 60 * 1000; // one-time notices last 12 hours
 
@@ -156,6 +157,13 @@ export const createNotification = asyncHandler(async (req: Request, res: Respons
     },
   });
 
+  await logActivity(
+    userId,
+    'sent',
+    'notification',
+    `"${notification.title}" to ${notification.audience === 'all' ? 'all levels' : notification.audience.replace('level_', '') + 'L'}`
+  );
+
   // Emit real-time to the matching socket room (one-time notices included)
   io.to(roomFor(audience ?? 'all')).emit('notification:new', notification);
 
@@ -256,6 +264,13 @@ export const createCourseRepNotification = asyncHandler(async (req: Request, res
     },
   });
 
+  await logActivity(
+    userId,
+    'sent',
+    'notification',
+    `"${notification.title}" to ${assignment.level}L (department ${assignment.departmentId})`
+  );
+
   // Live delivery: only students in this department and level
   io.to(`level:${assignment.level}:dept:${assignment.departmentId}`).emit(
     'notification:new',
@@ -347,10 +362,14 @@ export const getSentNotifications = asyncHandler(async (_req: Request, res: Resp
 
 // DELETE /api/notifications/:id  (any executive or admin)
 export const deleteNotification = asyncHandler(async (req: Request, res: Response) => {
+  const userId = (req as any).userId;
+
   const notification = await prisma.notification.findUnique({ where: { id: req.params.id } });
   if (!notification) return res.status(404).json({ message: 'Notification not found' });
 
   await prisma.notification.delete({ where: { id: req.params.id } });
+
+  await logActivity(userId, 'deleted', 'notification', `"${notification.title}"`);
 
   // Tell open student pages to drop it immediately
   io.to('level:all').emit('notification:delete', { id: notification.id });
@@ -360,6 +379,7 @@ export const deleteNotification = asyncHandler(async (req: Request, res: Respons
 
 // PATCH /api/notifications/:id  (any executive or admin)
 export const updateNotification = asyncHandler(async (req: Request, res: Response) => {
+  const userId = (req as any).userId;
   const { title, body, audience, category, isPopup, popupDays } = req.body;
 
   const notification = await prisma.notification.findUnique({ where: { id: req.params.id } });
@@ -404,6 +424,8 @@ export const updateNotification = asyncHandler(async (req: Request, res: Respons
       ...popupData,
     },
   });
+
+  await logActivity(userId, 'updated', 'notification', `"${updated.title}"`);
 
   return res.json(updated);
 });
@@ -453,6 +475,8 @@ export const deleteMyCourseRepNotification = asyncHandler(async (req: Request, r
   }
 
   await prisma.notification.delete({ where: { id: notification.id } });
+
+  await logActivity(userId, 'deleted', 'notification', `"${notification.title}"`);
 
   // Tell open pages in this class to drop it right away
   const level = Number(notification.audience.replace('level_', ''));

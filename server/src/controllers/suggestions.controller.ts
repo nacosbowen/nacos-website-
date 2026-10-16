@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { asyncHandler } from '../utils/asyncHandler';
+import { logActivity } from '../lib/activity';
 
 // POST /api/suggestions
 export const createSuggestion = asyncHandler(async (req: Request, res: Response) => {
@@ -74,6 +75,8 @@ export const updateSuggestionStatus = asyncHandler(async (req: Request, res: Res
 
 // DELETE /api/suggestions/:id  (exec/admin)
 export const deleteSuggestion = asyncHandler(async (req: Request, res: Response) => {
+  const userId = (req as any).userId;
+
   const { count } = await prisma.suggestion.deleteMany({
     where: { id: req.params.id },
   });
@@ -81,6 +84,8 @@ export const deleteSuggestion = asyncHandler(async (req: Request, res: Response)
   if (count === 0) {
     return res.status(404).json({ message: 'Suggestion not found' });
   }
+
+  await logActivity(userId, 'deleted', 'suggestion', 'A suggestion was deleted');
 
   return res.json({ ok: true });
 });

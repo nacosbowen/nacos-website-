@@ -4,6 +4,7 @@ import fs from 'fs';
 import { prisma } from '../lib/prisma';
 import { asyncHandler } from '../utils/asyncHandler';
 import { uploadPdfBuffer } from '../lib/cloudinary';
+import { logActivity } from '../lib/activity';
 
 function parseDepartmentIds(raw: unknown): number[] {
   const parts = Array.isArray(raw) ? raw : String(raw ?? '').split(',');
@@ -101,6 +102,13 @@ export const uploadPastQuestion = asyncHandler(async (req: Request, res: Respons
     },
   });
 
+  await logActivity(
+    userId,
+    'uploaded',
+    'past question',
+    `${question.courseCode} ${question.year} (${question.level}L)`
+  );
+
   return res.status(201).json(question);
 });
 
@@ -135,5 +143,13 @@ if (question.uploadedById !== userId && !canManageAll) {
   }
 
   await prisma.pastQuestion.delete({ where: { id: req.params.id } });
+
+  await logActivity(
+    userId,
+    'deleted',
+    'past question',
+    `${question.courseCode} ${question.year} (${question.level}L)`
+  );
+
   return res.json({ message: 'Deleted' });
 });

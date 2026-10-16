@@ -2,6 +2,7 @@
 import { useState, useEffect, FormEvent } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import api from '@/lib/api';
+import ActivityLog from '@/components/features/ActivityLog';
 
 interface UserRow {
   id: string;
@@ -189,6 +190,21 @@ const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     setDinner(data);
   } catch (err: any) {
     setDinnerError(err?.response?.data?.message || 'Failed to upload image');
+  } finally {
+    setImageUploading(false);
+  }
+};
+
+const handleImageRemove = async () => {
+  if (!dinner?.imageUrl || imageUploading) return;
+  if (!window.confirm('Remove the dinner image?')) return;
+  setImageUploading(true);
+  setDinnerError('');
+  try {
+    const { data } = await api.patch('/dinner', { imageUrl: null });
+    setDinner(data);
+  } catch (err: any) {
+    setDinnerError(err?.response?.data?.message || 'Failed to remove image');
   } finally {
     setImageUploading(false);
   }
@@ -542,16 +558,29 @@ const handleDeleteExam = async (id: string) => {
   )}
 
   <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6 space-y-4">
-    {dinner?.imageUrl && (
-      <img src={`${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '')}${dinner.imageUrl}`}
+        {dinner?.imageUrl && (
+      <img
+        src={
+          dinner.imageUrl.startsWith('http')
+            ? dinner.imageUrl
+            : `${process.env.NEXT_PUBLIC_API_URL?.replace('/api', '')}${dinner.imageUrl}`
+        }
         alt="Dinner" className="w-full h-40 object-cover rounded-lg" />
     )}
 
-    <div>
+       <div>
       <label className="block text-xs font-semibold text-gray-500 mb-1">Dinner Image</label>
-      <input type="file" accept="image/*" onChange={handleImageUpload} disabled={imageUploading}
-        className="text-sm" />
-      {imageUploading && <p className="text-xs text-gray-400 mt-1">Uploading...</p>}
+      <div className="flex flex-wrap items-center gap-3">
+        <input type="file" accept="image/*" onChange={handleImageUpload} disabled={imageUploading}
+          className="text-sm" />
+        {dinner?.imageUrl && (
+          <button type="button" onClick={handleImageRemove} disabled={imageUploading}
+            className="text-xs font-semibold text-red-600 hover:text-red-700 disabled:opacity-50">
+            Remove image
+          </button>
+        )}
+      </div>
+      {imageUploading && <p className="text-xs text-gray-400 mt-1">Working...</p>}
     </div>
 
     <form onSubmit={handleDinnerSave} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -586,6 +615,7 @@ const handleDeleteExam = async (id: string) => {
     </form>
   </div>
 </section>
+        <ActivityLog />
       </main>
     </div>
   );

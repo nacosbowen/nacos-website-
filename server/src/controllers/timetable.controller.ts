@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { asyncHandler } from '../utils/asyncHandler';
+import { logActivity } from '../lib/activity';
 
 // Looks up whether the caller is an admin, and which department/level
 // combinations they are assigned to as a course rep.
@@ -73,6 +74,8 @@ export const createTimetableEntry = asyncHandler(async (req: Request, res: Respo
     },
   });
 
+  await logActivity(userId, 'created', 'timetable', `${entry.courseCode} on ${entry.day}, ${entry.startTime}-${entry.endTime}`);
+
   return res.status(201).json(entry);
 });
 
@@ -104,6 +107,8 @@ export const updateTimetableEntry = asyncHandler(async (req: Request, res: Respo
     },
   });
 
+  await logActivity(userId, 'updated', 'timetable', `${entry.courseCode} on ${entry.day}, ${entry.startTime}-${entry.endTime}`);
+
   return res.json(entry);
 });
 
@@ -123,5 +128,8 @@ export const deleteTimetableEntry = asyncHandler(async (req: Request, res: Respo
   }
 
   await prisma.timetableEntry.delete({ where: { id: req.params.id } });
+
+  await logActivity(userId, 'deleted', 'timetable', `${existing.courseCode} on ${existing.day}, ${existing.startTime}-${existing.endTime}`);
+
   return res.json({ message: 'Entry deleted' });
 });
