@@ -23,7 +23,7 @@ export interface PopupNotification {
   body: string;
   category: string;
   oneTime?: boolean;
-  senderType?: 'executive' | 'course_rep';
+  senderType?: string;
 }
 
 interface AuthContextValue {
@@ -54,8 +54,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [overrideRole, setOverrideRole] = useState<string | null>(null);
-const [popupQueue, setPopupQueue] = useState<PopupNotification[]>([]);
-const popup = popupQueue[0] ?? null;
+  const [popupQueue, setPopupQueue] = useState<PopupNotification[]>([]);
+  const popup = popupQueue[0] ?? null;
   const router = useRouter();
 
   const activeRole = overrideRole ?? (user ? getTopRole(user.roles) : 'student');
@@ -64,127 +64,158 @@ const popup = popupQueue[0] ?? null;
   const hasRestoredSession = useRef(false);
   const ACTIVE_ROLE_KEY = 'nacos_active_role';
 
-const restoreSession = useCallback(async () => {
-  const attempt = async () => {
-   await refreshAccessToken();
-    const { data: me } = await api.get('/auth/me');
-    setUser(me);
+  // Lets tabs in this browser tell each other about logins and logouts
+  const channelRef = useRef<BroadcastChannel | null>(null);
 
-    const savedRole = localStorage.getItem(ACTIVE_ROLE_KEY);
-    if (savedRole && me.roles.includes(savedRole)) {
-      setOverrideRole(savedRole);
-    }
-  };
+  useEffect(() => {
+    if (typeof BroadcastChannel === 'undefined') return;
+    const channel = new BroadcastChannel('nacos-auth');
+    channelRef.current = channel;
 
-  try {
+    channel.onmessage = (event) => {
+      const type = event.data?.type;
+      if (type !== 'login' && type !== 'logout') return;
+
+      // Another tab logged in or out. Clear this tab on screen only.
+      // We must NOT call the server logout here, because that would end
+      // the new session that the other tab just created.
+      setToken(null);
+      setUser(null);
+      setOverrideRole(null);
+      setPopupQueue([]);
+      router.push('/login');
+    };
+
+    return () => {
+      channel.close();
+      channelRef.current = null;
+    };
+  }, [router]);
+
+  const restoreSession = useCallback(async () => {
+    const attempt = async () => {
+      await refreshAccessToken();
+      const { data: me } = await api.get('/auth/me');
+      setUser(me);
+
+      const savedRole = localStorage.getItem(ACTIVE_ROLE_KEY);
+      if (savedRole && me.roles.includes(savedRole)) {
+        setOverrideRole(savedRole);
+      }
+    };
+
     try {
-      await attempt();
-    } catch (err: any) {
-      const status = err?.response?.status;
-      // 401/403 means the session is genuinely invalid: don't retry.
-      if (status === 401 || status === 403) throw err;
-      // Anything else (network error, 500, 503, database hiccup): wait and retry once.
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      await attempt();
+      try {
+        await attempt();
+      } catch (err: any) {
+        const status = err?.response?.status;
+        // 401/403 means the session is genuinely invalid: don't retry.
+        if (status === 401 || status === 403) throw err;
+        // Anything else (network error, 500, 503, database hiccup): wait and retry once.
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+        await attempt();
+      }
+    } catch {
+      setUser(null);
+      setToken(null);
+    } finally {
+      setIsLoading(false);
     }
-  } catch {
-    setUser(null);
-    setToken(null);
-  } finally {
-    setIsLoading(false);
-  }
-}, []);
-useEffect(() => {
-  restoreSession();
-}, [restoreSession]);
+  }, []);
 
-useEffect(() => {
-  if (!user) {
-    socket.disconnect();
-    return;
-  }
+  useEffect(() => {
+    restoreSession();
+  }, [restoreSession]);
 
-  function handleConnect() {
-    socket.emit('join', { level: user!.level });
-  }
+  useEffect(() => {
+    if (!user) {
+      socket.disconnect();
+      return;
+    }
 
-  socket.on('connect', handleConnect);
-  socket.connect();
-  if (socket.connected) handleConnect();
+    function handleConnect() {
+      socket.emit('join', { level: user!.level });
+    }
 
-  return () => {
-    socket.off('connect', handleConnect);
+    socket.on('connect', handleConnect);
+    socket.connect();
+    if (socket.connected) handleConnect();
+
+    return () => {
+      socket.off('connect', handleConnect);
+    };
+  }, [user]);
+
+  // Popups are fetched only right after a student logs in, never on refresh.
+  const loadPopups = () => {
+    api.get('/notifications/popups')
+      .then((r) => {
+        const list = Array.isArray(r.data) ? r.data : r.data?.popups ?? [];
+        setPopupQueue(list);
+      })
+      .catch(() => {});
   };
-}, [user]);
 
-// Popups are fetched only right after a student logs in, never on refresh.
-const loadPopups = () => {
-  api.get('/notifications/popups')
-    .then((r) => {
-      const list = Array.isArray(r.data) ? r.data : r.data?.popups ?? [];
-      setPopupQueue(list);
-    })
-    .catch(() => {});
-};
+  const dismissPopup = () => {
+    const current = popupQueue[0];
+    // One-time notices are marked as seen on the server, so they never return.
+    if (current?.oneTime) {
+      api.patch(`/notifications/${current.id}/read`).catch(() => {});
+    }
+    setPopupQueue((q) => q.slice(1));
+  };
 
-const dismissPopup = () => {
-  const current = popupQueue[0];
-  // One-time notices are marked as seen on the server, so they never return.
-  if (current?.oneTime) {
-    api.patch(`/notifications/${current.id}/read`).catch(() => {});
-  }
-  setPopupQueue((q) => q.slice(1));
-};
-
-const login = async (email: string, password: string, selectedRole: string): Promise<AuthUser> => {
-  const { data } = await api.post('/auth/login', { email, password, selectedRole });
-  setToken(data.accessToken);
-  setUser(data.user);
-  setOverrideRole(selectedRole);
-  localStorage.setItem(ACTIVE_ROLE_KEY, selectedRole);
+  const login = async (email: string, password: string, selectedRole: string): Promise<AuthUser> => {
+    const { data } = await api.post('/auth/login', { email, password, selectedRole });
+    setToken(data.accessToken);
+    setUser(data.user);
+    setOverrideRole(selectedRole);
+    localStorage.setItem(ACTIVE_ROLE_KEY, selectedRole);
+    channelRef.current?.postMessage({ type: 'login' });
     if (selectedRole === 'student') loadPopups();
-  return data.user;
-};
+    return data.user;
+  };
 
-const signup = async (email: string, matricNumber: string, password: string): Promise<string> => {
-  const { data } = await api.post('/auth/signup', { email, matricNumber, password });
-  return data.message;
-};
+  const signup = async (email: string, matricNumber: string, password: string): Promise<string> => {
+    const { data } = await api.post('/auth/signup', { email, matricNumber, password });
+    return data.message;
+  };
 
-const forgotPassword = async (email: string): Promise<string> => {
-  const { data } = await api.post('/auth/forgot-password', { email });
-  return data.message;
-};
+  const forgotPassword = async (email: string): Promise<string> => {
+    const { data } = await api.post('/auth/forgot-password', { email });
+    return data.message;
+  };
 
-const resetPassword = async (email: string, token: string, newPassword: string): Promise<string> => {
-  const { data } = await api.post('/auth/reset-password', { email, token, newPassword });
-  return data.message;
-};
+  const resetPassword = async (email: string, token: string, newPassword: string): Promise<string> => {
+    const { data } = await api.post('/auth/reset-password', { email, token, newPassword });
+    return data.message;
+  };
 
-const adminLogin = async (email: string, password: string): Promise<AuthUser> => {
-  const { data } = await api.post('/auth/admin-login', { email, password });
-  setToken(data.accessToken);
-  setUser(data.user);
-  setOverrideRole('admin');
-  localStorage.setItem(ACTIVE_ROLE_KEY, 'admin');
-  return data.user;
-};
+  const adminLogin = async (email: string, password: string): Promise<AuthUser> => {
+    const { data } = await api.post('/auth/admin-login', { email, password });
+    setToken(data.accessToken);
+    setUser(data.user);
+    setOverrideRole('admin');
+    localStorage.setItem(ACTIVE_ROLE_KEY, 'admin');
+    channelRef.current?.postMessage({ type: 'login' });
+    return data.user;
+  };
 
-
-const logout = async () => {
-  setToken(null);
-  setUser(null);
+  const logout = async () => {
+    setToken(null);
+    setUser(null);
     setPopupQueue([]);
-  localStorage.removeItem(ACTIVE_ROLE_KEY);
-  router.push('/login');
-  try { await api.post('/auth/logout'); } catch {}
-};
+    localStorage.removeItem(ACTIVE_ROLE_KEY);
+    channelRef.current?.postMessage({ type: 'logout' });
+    router.push('/login');
+    try { await api.post('/auth/logout'); } catch {}
+  };
 
-return (
-  <AuthContext.Provider value={{ user, isLoading, isAuthenticated: !!user, activeRole, setActiveRole, login, signup, forgotPassword, resetPassword, adminLogin, logout, popup, dismissPopup }}>
-    {children}
-  </AuthContext.Provider>
-);
+  return (
+    <AuthContext.Provider value={{ user, isLoading, isAuthenticated: !!user, activeRole, setActiveRole, login, signup, forgotPassword, resetPassword, adminLogin, logout, popup, dismissPopup }}>
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth(): AuthContextValue {
