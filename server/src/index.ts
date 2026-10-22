@@ -26,6 +26,7 @@ import pushRoutes from './routes/push.routes';
 import statsRoutes from './routes/stats.routes';
 import { deleteExpiredOneTime } from './controllers/notifications.controller';
 import devApplicationsRoutes from './routes/dev-applications.routes';
+import { purgeOldActivityLogs } from './lib/activityCleanup';
 
 const app = express();
 app.set('trust proxy', 1);
@@ -152,4 +153,8 @@ server.listen(PORT, () => {
   // Clear expired one-time notifications now and every 10 minutes
   deleteExpiredOneTime().catch(console.error);
   setInterval(() => deleteExpiredOneTime().catch(console.error), 10 * 60 * 1000);
+
+  // Clear activity logs older than 7 days on start and once every 6 hours
+  purgeOldActivityLogs();
+  setInterval(() => purgeOldActivityLogs(), 6 * 60 * 60 * 1000);
 });

@@ -1,9 +1,11 @@
 import { Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { asyncHandler } from '../utils/asyncHandler';
+import { purgeOldActivityLogs } from '../lib/activityCleanup';
 
 // GET /api/admin/activity?role=&entityType=&search=&page=
 export const getActivityLog = asyncHandler(async (req: Request, res: Response) => {
+  await purgeOldActivityLogs();
   const { role, entityType, search } = req.query;
   const page = Math.max(Number(req.query.page) || 1, 1);
   const pageSize = 30;

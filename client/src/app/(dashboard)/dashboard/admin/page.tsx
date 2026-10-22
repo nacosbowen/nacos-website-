@@ -64,24 +64,32 @@ export default function AdminDashboard() {
   const [repTarget, setRepTarget] = useState<UserRow | null>(null);
   const [repDept, setRepDept] = useState<number | ''>('');
   const [repLevel, setRepLevel] = useState<number | ''>('');
+  const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
 
-  const fetchUsers = async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const { data } = await api.get('/users');
-      setUsers(data);
-    } catch (err: any) {
-      setError(err?.response?.data?.message || 'Failed to load users');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const fetchUsers = async (q: string = debouncedSearch) => {
+  setLoading(true);
+  setError('');
+  try {
+    const { data } = await api.get('/users', { params: q ? { search: q } : {} });
+    setUsers(data);
+  } catch (err: any) {
+    setError(err?.response?.data?.message || 'Failed to load users');
+  } finally {
+    setLoading(false);
+  }
+};
+
+// Wait 400ms after the last keystroke before searching
+useEffect(() => {
+  const t = setTimeout(() => setDebouncedSearch(search.trim()), 400);
+  return () => clearTimeout(t);
+}, [search]);
 
 useEffect(() => {
   if (isLoading) return;
-  fetchUsers();
-}, [isLoading]);
+  fetchUsers(debouncedSearch);
+}, [isLoading, debouncedSearch]);
 
   const handleRoleChange = async (
     userId: string,
@@ -347,10 +355,17 @@ const handleDeleteExam = async (id: string) => {
 
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-8">
         <section>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">User Management</h2>
-            <span className="text-sm text-gray-400">{users.length} users</span>
-          </div>
+         <div className="flex items-center justify-between mb-4">
+  <h2 className="text-lg font-semibold text-gray-900">User Management</h2>
+  <span className="text-sm text-gray-400">{users.length} users</span>
+</div>
+
+<input
+  value={search}
+  onChange={(e) => setSearch(e.target.value)}
+  placeholder="Search by name, email or matric number..."
+  className="w-full mb-4 px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
+/>
 
           {error && (
             <div className="mb-4 px-4 py-3 rounded-xl bg-red-50 border border-red-100 text-red-600 text-sm">

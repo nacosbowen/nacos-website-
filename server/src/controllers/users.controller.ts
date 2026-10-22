@@ -24,7 +24,7 @@ export const listUsers = asyncHandler(async (req: Request, res: Response) => {
       department: true,
       roles: { include: { role: true } },
     },
-    orderBy: { fullName: 'asc' },
+    orderBy: { createdAt: 'asc' },
   });
 
   return res.json(

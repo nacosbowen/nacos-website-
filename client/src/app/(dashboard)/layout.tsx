@@ -1,22 +1,24 @@
 'use client';
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import DashboardSkeleton from '@/components/dashboard/DashboardSkeleton';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { isLoading, isAuthenticated } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      router.replace('/login');
+      const isAdminArea = pathname?.startsWith('/dashboard/admin');
+      router.replace(isAdminArea ? '/admin-login' : '/login');
     }
-  }, [isLoading, isAuthenticated, router]);
+  }, [isLoading, isAuthenticated, router, pathname]);
 
-if (isLoading) {
-  return <DashboardSkeleton />;
-}
+  if (isLoading) {
+    return <DashboardSkeleton />;
+  }
 
   if (!isAuthenticated) {
     return (

@@ -202,12 +202,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = async () => {
+    const wasAdmin = activeRole === 'admin';
     setToken(null);
     setUser(null);
     setPopupQueue([]);
     localStorage.removeItem(ACTIVE_ROLE_KEY);
     channelRef.current?.postMessage({ type: 'logout' });
-    router.push('/login');
+    router.push(wasAdmin ? '/admin-login' : '/login');
     try { await api.post('/auth/logout'); } catch {}
   };
 
